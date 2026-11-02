@@ -32,6 +32,13 @@ if not exist ".git" (
     echo [1/5] Local Git repository detected.
 )
 
+:: Ensure Git identity configured
+git config user.name >nul 2>&1
+if errorlevel 1 (
+    git config user.name "johnballz17"
+    git config user.email "64759767+johnballz17@users.noreply.github.com"
+)
+
 :: 3. Configure Remote URL
 git remote get-url origin >nul 2>&1
 if errorlevel 1 (
