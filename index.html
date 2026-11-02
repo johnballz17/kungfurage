@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CARPE'S KUNG FU RAGE: NES ARCADE BRAWLER</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="arcade-container">
+    <!-- Retro Arcade Marquee -->
+    <header class="arcade-header">
+      <div class="marquee-lights left"></div>
+      <div class="marquee-title">
+        <span class="neon-red">CARPE'S</span> <span class="neon-gold">KUNG FU RAGE</span>
+        <span class="sub-title">~ SHADOWS OF CHINATOWN ~</span>
+      </div>
+      <div class="marquee-lights right"></div>
+    </header>
+
+    <!-- Game Screen with CRT & Scanlines -->
+    <div id="screen-wrapper" class="crt-screen">
+      <canvas id="gameCanvas" width="480" height="270"></canvas>
+      <div id="scanlines" class="scanline-overlay"></div>
+      <div id="crt-vignette" class="vignette-overlay"></div>
+      
+      <!-- Virtual Touch Controls for Mobile/Touchscreens -->
+      <div id="touch-controls" class="hidden">
+        <div id="dpad" class="touch-cluster">
+          <button class="touch-btn dpad-up" data-key="ArrowUp">▲</button>
+          <div class="dpad-middle">
+            <button class="touch-btn dpad-left" data-key="ArrowLeft">◀</button>
+            <div class="dpad-center"></div>
+            <button class="touch-btn dpad-right" data-key="ArrowRight">▶</button>
+          </div>
+          <button class="touch-btn dpad-down" data-key="ArrowDown">▼</button>
+        </div>
+        <div id="action-buttons" class="touch-cluster">
+          <div class="btn-row">
+            <button class="touch-btn action-btn mega" data-key="KeyH">MEGA</button>
+            <button class="touch-btn action-btn special" data-key="KeyL">SP</button>
+            <button class="touch-btn action-btn jump" data-key="Space">JUMP</button>
+          </div>
+          <div class="btn-row">
+            <button class="touch-btn action-btn punch" data-key="KeyJ">PUNCH</button>
+            <button class="touch-btn action-btn kick" data-key="KeyK">KICK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arcade Control Deck & Instructions -->
+    <footer class="arcade-footer">
+      <div class="controls-panel">
+        <div class="control-col">
+          <span class="ctrl-heading">MOVEMENT</span>
+          <span class="ctrl-key"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>ARROWS</kbd></span>
+          <span class="ctrl-hint">Double tap ◀/▶ to DASH</span>
+        </div>
+        <div class="control-col">
+          <span class="ctrl-heading">COMBAT & BRANCHING COMBOS</span>
+          <span class="ctrl-key"><kbd>J</kbd>x5 ➔ 5-Hit Punch Rush / <kbd>K</kbd>x4 ➔ Cyclone Finisher</span>
+          <span class="ctrl-key">Hybrids: <kbd>J</kbd>+<kbd>J</kbd>+<kbd>K</kbd> (Axe Drop) / <kbd>K</kbd>+<kbd>K</kbd>+<kbd>J</kbd> (One-Inch Blast)</span>
+          <span class="ctrl-key"><kbd>⬆</kbd>+<kbd>J</kbd> Rising Dragon / <kbd>⬆</kbd>+<kbd>K</kbd> Flash Kick / <kbd>⬇</kbd>+<kbd>K</kbd> Low Sweep</span>
+          <span class="ctrl-key"><kbd>➔</kbd>+<kbd>J</kbd> Super Lunge / <kbd>⬇</kbd>+<kbd>J</kbd> Ground Slam / <kbd>⬅</kbd>+<kbd>J</kbd> Reverse</span>
+          <span class="ctrl-key"><kbd>H</kbd> / <kbd>Hold J</kbd> ➔ <b>DRAGON KNUCKLE</b> (Mega Punch)</span>
+          <span class="ctrl-key">Weapons: Pistols Gun-Fu / Nunchaku / Daggers / Pipe | <kbd>B</kbd> STORE</span>
+          <span class="ctrl-key">Air: <kbd>J</kbd> Dive Kick / <kbd>⬇</kbd>+<kbd>J</kbd> Hammer / <kbd>K</kbd> Split & Cyclone</span>
+        </div>
+        <div class="control-col">
+          <span class="ctrl-heading">GAMEPAD & SETTINGS</span>
+          <span class="ctrl-key">Xbox/PS Controller: Supported!</span>
+          <div class="toggle-buttons">
+            <button id="toggle-scanlines" class="arcade-btn">CRT: ON</button>
+            <button id="toggle-sound" class="arcade-btn">AUDIO: ON</button>
+            <button id="toggle-touch" class="arcade-btn">TOUCH: AUTO</button>
+            <button id="open-settings-btn" class="arcade-btn primary">SETTINGS</button>
+            <button id="open-manual-btn" class="arcade-btn manual-btn">MANUAL</button>
+            <button id="toggle-debug-btn" class="arcade-btn debug-btn">DEBUG LOG</button>
+            <button id="open-logs-folder-btn" class="arcade-btn folder-btn">📁 LOGS FOLDER</button>
+            <button id="toggle-autoplay-btn" class="arcade-btn autoplay-btn">WATCH AI: OFF</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- SETTINGS MODAL DIALOG -->
+    <div id="settings-modal" class="modal-overlay hidden">
+      <div class="settings-dialog arcade-card">
+        <div class="dialog-header">
+          <span class="dialog-title">SYSTEM SETTINGS</span>
+          <button id="close-settings-btn" class="close-btn">&times;</button>
+        </div>
+
+        <div class="settings-tabs">
+          <button class="tab-btn active" data-tab="tab-difficulty">DIFFICULTY</button>
+          <button class="tab-btn" data-tab="tab-companion">AI COMPANION</button>
+          <button class="tab-btn" data-tab="tab-soundtrack">8-BIT SOUNDTRACK</button>
+          <button class="tab-btn" data-tab="tab-keybinds">KEYBINDS</button>
+          <button class="tab-btn" data-tab="tab-debug">LOG & DEBUG</button>
+          <button id="open-manual-tab-btn" class="tab-btn manual-tab-btn">MANUAL 📖</button>
+        </div>
+
+        <!-- 1. Difficulty Tab -->
+        <div class="tab-content" id="tab-difficulty">
+          <div class="settings-group">
+            <span class="group-label">SELECT DIFFICULTY LEVEL</span>
+            <div class="opt-grid difficulty-grid">
+              <button class="opt-btn" data-difficulty="EASY">
+                <span class="opt-title">EASY</span>
+                <span class="opt-desc">-30% Damage Taken, +25% Power</span>
+              </button>
+              <button class="opt-btn active" data-difficulty="NORMAL">
+                <span class="opt-title">NORMAL</span>
+                <span class="opt-desc">Classic Balanced Arcade</span>
+              </button>
+              <button class="opt-btn" data-difficulty="HARD">
+                <span class="opt-title">HARD</span>
+                <span class="opt-desc">+30% Enemy HP, Faster Attacks</span>
+              </button>
+              <button class="opt-btn" data-difficulty="MASTER">
+                <span class="opt-title">MASTER</span>
+                <span class="opt-desc">Ruthless Ninja Flanks & Heavy Damage</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-group" style="margin-top: 16px;">
+            <span class="group-label">DEFAULT GAME MODE</span>
+            <div class="opt-grid mode-grid">
+              <button class="opt-btn active" data-mode="HORIZONTAL">
+                <span class="opt-title">STREET BRAWL</span>
+                <span class="opt-desc">16,000px 2.5D horizontal marathon across 20 zones</span>
+              </button>
+              <button class="opt-btn" data-mode="VERTICAL">
+                <span class="opt-title">PAGODA ASCENT</span>
+                <span class="opt-desc">Vertical climbing tower mode: 20 ascending floors & elevator combat</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-group" style="margin-top: 16px;">
+            <span class="group-label">VISUAL & ACCESSIBILITY OPTIONS</span>
+            <div class="opt-grid visual-grid">
+              <button id="toggle-screenshake-btn" class="opt-btn">
+                <span class="opt-title" id="screenshake-btn-title">SCREEN SHAKE: OFF</span>
+                <span class="opt-desc">Eliminates camera shaking during hits, jumps & explosions</span>
+              </button>
+              <button id="toggle-screenflash-btn" class="opt-btn">
+                <span class="opt-title" id="screenflash-btn-title">SCREEN FLASHING: OFF</span>
+                <span class="opt-desc">Eliminates lightning flashes, impact bursts & character strobe</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. AI Companion Tab -->
+        <div class="tab-content hidden" id="tab-companion">
+          <div class="settings-group">
+            <span class="group-label">2P CO-OP COMPANION STATUS</span>
+            <div class="opt-row">
+              <button id="toggle-companion-btn" class="opt-btn active full-width-btn">
+                <span class="opt-title">COMPANION: ON</span>
+                <span class="opt-desc">AI fighting partner spawns and assists you in battle</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <span class="group-label">COMPANION FIGHTER CHARACTER</span>
+            <div class="opt-grid companion-char-grid">
+              <button class="opt-btn active" data-comp-char="auto">
+                <span class="opt-title">AUTO MATCHUP</span>
+                <span class="opt-desc">Selects complementary fighting style</span>
+              </button>
+              <button class="opt-btn" data-comp-char="lindin">
+                <span class="opt-title">LINDIN</span>
+                <span class="opt-desc">Agile Viper (Fast Flurries & Wall Leaps)</span>
+              </button>
+              <button class="opt-btn" data-comp-char="smellu">
+                <span class="opt-title">SMELLU</span>
+                <span class="opt-desc">Balanced Dragon (Fist Combos & Palm Blast)</span>
+              </button>
+              <button class="opt-btn" data-comp-char="smoro">
+                <span class="opt-title">SMORO</span>
+                <span class="opt-desc">Heavy Iron Bull (Super-Armor & Suplexes)</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <span class="group-label">COMPANION COMBAT TACTICS</span>
+            <div class="opt-grid companion-tactics-grid">
+              <button class="opt-btn active" data-comp-tactics="balanced">
+                <span class="opt-title">BALANCED</span>
+                <span class="opt-desc">Flanks enemies, protects player, chains combos</span>
+              </button>
+              <button class="opt-btn" data-comp-tactics="aggressive">
+                <span class="opt-title">AGGRESSIVE</span>
+                <span class="opt-desc">Relentless offense, rush attacks & Mega Punches</span>
+              </button>
+              <button class="opt-btn" data-comp-tactics="protector">
+                <span class="opt-title">PROTECTOR</span>
+                <span class="opt-desc">Stays close to 1P, intercepts ambushers</span>
+              </button>
+            </div>
+            <p class="companion-feature-note">⚡ Tip: You can also press <kbd>C</kbd> during Character Select or in-game to quickly toggle the AI Companion!</p>
+          </div>
+          <div class="settings-group" style="margin-top: 14px;">
+            <span class="group-label">AUTONOMOUS 2-AI SPECTATOR WATCH & LEARNING MODE</span>
+            <div class="opt-row">
+              <button id="settings-toggle-autoplay-btn" class="opt-btn full-width-btn">
+                <span class="opt-title" id="settings-autoplay-title">WATCH AI AUTO-PLAY: OFF</span>
+                <span class="opt-desc" id="settings-autoplay-desc">Two AI companions team up, conquer stages autonomously, and train via Q-Learning [Press Q]</span>
+              </button>
+            </div>
+            <div class="opt-grid" style="margin-top: 8px;">
+              <button id="reset-ai-brain-btn" class="opt-btn">
+                <span class="opt-title">🧠 RESET AI LEARNING BRAIN</span>
+                <span class="opt-desc">Clear learned Q-table weights to baseline</span>
+              </button>
+              <button id="export-ai-brain-btn" class="opt-btn">
+                <span class="opt-title">💾 EXPORT AI BRAIN JSON</span>
+                <span class="opt-desc">Download trained Q-learning policy matrix</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 8-Bit Soundtrack & Audio Tab -->
+        <div class="tab-content hidden" id="tab-soundtrack">
+          <div class="settings-group">
+            <span class="group-label">CURRENTLY PLAYING SOUNDTRACK</span>
+            <div class="now-playing-banner">
+              <span id="now-playing-label">🎸 NEON DRAGON ANTHEM</span>
+            </div>
+          </div>
+          <div class="settings-group">
+            <span class="group-label">8-BIT ROCK JUKEBOX (CLICK TO PLAY & PREVIEW)</span>
+            <div class="opt-grid jukebox-grid">
+              <button class="opt-btn track-btn active" data-track="title">
+                <span class="opt-title">🥋 INTRO THEME</span>
+                <span class="opt-desc">Shadow in the Dojo (Main Intro Soundtrack)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="stage1">
+                <span class="opt-title">🎸 STAGE 1 THEME</span>
+                <span class="opt-desc">Chinatown Beatdown (130 BPM Street Brawl)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="stage2">
+                <span class="opt-title">🎸 STAGE 2 THEME</span>
+                <span class="opt-desc">Pagoda Sky Blitz (146 BPM Speed Metal)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="stage3">
+                <span class="opt-title">🎸 STAGE 3 THEME</span>
+                <span class="opt-desc">Shadow Clan Fury (136 BPM Ninja Martial Rock)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="boss">
+                <span class="opt-title">🎸 BOSS BATTLE</span>
+                <span class="opt-desc">Grandmaster Clash (152 BPM Boss Showdown)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="tiger_trap">
+                <span class="opt-title">🐅 BATTLE ANTHEM</span>
+                <span class="opt-desc">The Tiger's Trap (Combat Anthem ~Every 10m)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="victory">
+                <span class="opt-title">🏆 VICTORY THEME</span>
+                <span class="opt-desc">Iron in a Calloused Hand (Grandmaster Defeat)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="gameover">
+                <span class="opt-title">⚰️ GAME OVER THEME</span>
+                <span class="opt-desc">Five Hundred Times (Character Defeat)</span>
+              </button>
+              <button class="opt-btn track-btn" data-track="stop">
+                <span class="opt-title">⏹️ STOP MUSIC</span>
+                <span class="opt-desc">Mute BGM audio playback</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <span class="group-label">VOLUME CONTROLS</span>
+            <div class="volume-sliders-container">
+              <div class="volume-slider-row">
+                <div class="vol-header">
+                  <span>MUSIC VOLUME:</span>
+                  <span id="bgm-vol-display" class="vol-percent">65%</span>
+                </div>
+                <input type="range" id="bgm-volume-slider" min="0" max="100" value="65" class="arcade-slider">
+              </div>
+              <div class="volume-slider-row">
+                <div class="vol-header">
+                  <span>SFX VOLUME:</span>
+                  <span id="sfx-vol-display" class="vol-percent">75%</span>
+                </div>
+                <input type="range" id="sfx-volume-slider" min="0" max="100" value="75" class="arcade-slider">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Keybinds Tab -->
+        <div class="tab-content hidden" id="tab-keybinds">
+          <div class="settings-group">
+            <span class="group-label">CUSTOM KEYBOARD BINDINGS (CLICK BUTTON TO REBIND)</span>
+            <div class="keybinds-table" id="keybinds-list">
+              <!-- Dynamically populated rows -->
+            </div>
+            <div class="opt-row" style="margin-top: 10px;">
+              <button id="reset-keybinds-btn" class="arcade-btn">RESET TO DEFAULTS</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Log & Debug Console Tab -->
+        <div class="tab-content hidden" id="tab-debug">
+          <div class="settings-group">
+            <span class="group-label">GAME LOGGER & EVENT TRACKER</span>
+            <div class="opt-row">
+              <button id="toggle-logger-active-btn" class="opt-btn active full-width-btn">
+                <span class="opt-title">LOG & DEBUG CONSOLE: ON</span>
+                <span class="opt-desc">Automatically records all combat, player, AI companion, and system events</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group" style="margin-top: 14px;">
+            <span class="group-label">DEBUG CONSOLE & SAVED GAME LOGS</span>
+            <div class="opt-grid">
+              <button id="settings-open-console-btn" class="opt-btn">
+                <span class="opt-title">🖥️ OPEN LIVE CONSOLE</span>
+                <span class="opt-desc">View real-time event stream and game telemetry</span>
+              </button>
+              <button id="settings-view-last-log-btn" class="opt-btn">
+                <span class="opt-title">📜 VIEW LAST GAME LOG</span>
+                <span class="opt-desc">Review events and telemetry from previous match</span>
+              </button>
+            </div>
+            <div class="opt-grid" style="margin-top: 8px;">
+              <button id="settings-export-json-btn" class="opt-btn">
+                <span class="opt-title">💾 EXPORT JSON</span>
+                <span class="opt-desc">Download complete session data as .json</span>
+              </button>
+              <button id="settings-export-txt-btn" class="opt-btn">
+                <span class="opt-title">📄 EXPORT TEXT</span>
+                <span class="opt-desc">Download formatted log as .txt report</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group" style="margin-top: 14px;">
+            <span class="group-label">SAVED LOGS ARCHIVE & DIRECTORY SYNC</span>
+            <div class="opt-row">
+              <button id="settings-open-folder-btn" class="opt-btn full-width-btn">
+                <span class="opt-title">📁 OPEN SAVED LOGS FOLDER ARCHIVE</span>
+                <span class="opt-desc">Browse individual game session logs, download JSON/TXT, or view in console</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button id="save-settings-close" class="arcade-btn primary">CLOSE & RESUME</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAME MANUAL INSTRUCTION BOOKLET MODAL -->
+    <div id="manual-modal" class="modal-overlay hidden">
+      <div class="manual-dialog arcade-card">
+        <div class="manual-header">
+          <div class="manual-title-cluster">
+            <span class="manual-gold-star">★</span>
+            <span class="manual-title">CARPE'S KUNG FU RAGE : OFFICIAL MANUAL</span>
+            <span class="manual-gold-star">★</span>
+          </div>
+          <div class="manual-jump-wrapper">
+            <select id="manual-page-select" class="manual-select">
+              <option value="1">PAGE 1: STORY & PROLOGUE</option>
+              <option value="2">PAGE 2: THE 3 FIGHTERS</option>
+              <option value="3">PAGE 3: CONTROLS & MOVEMENT</option>
+              <option value="4">PAGE 4: MASTER MOVE LIST</option>
+              <option value="5">PAGE 5: THE DRAGON KNUCKLE</option>
+              <option value="6">PAGE 6: WEAPONS & DUAL PISTOLS</option>
+              <option value="7">PAGE 7: CHINATOWN ARMORY (STORE)</option>
+              <option value="8">PAGE 8: GAME MODES (HORIZ / VERT)</option>
+              <option value="9">PAGE 9: 2P AI COMPANION GUIDE</option>
+              <option value="10">PAGE 10: ENEMY BESTIARY & BOSSES</option>
+              <option value="11">PAGE 11: SPEED SCALING & SECRETS</option>
+            </select>
+            <button id="close-manual-btn" class="close-btn">&times;</button>
+          </div>
+        </div>
+
+        <div class="manual-body" id="manual-pages-container">
+          <!-- PAGE 1: STORY & PROLOGUE -->
+          <div class="manual-page" data-page="1">
+            <div class="page-badge">CHAPTER 1: THE DRAGON CRIME WAVE</div>
+            <h2 class="page-heading">SHADOWS OVER CHINATOWN</h2>
+            <div class="page-text-block">
+              <p>The year is 1991. The rain-slicked streets of Chinatown are held in the iron grip of the <b>Shadow Dragon Clan Syndicate</b>, led by the enigmatic martial artist <b>Grandmaster Kuroda</b> and his ruthless lieutenants: the treacherous <b>Master Shen</b> and the demonic brute <b>Iron Fang Oni</b>.</p>
+              <p>From underground ninja dojos to high-speed trains, soaring construction cranes, and ancient mountain pagodas, the syndicate has unleashed an army of street thugs, ninja assassins, armored blade ronin, tengu kickboxers, kanabo-wielding giants, and forbidden reanimated zombies!</p>
+              <div class="manual-callout gold">
+                <b>YOUR MISSION:</b> Take to the neon streets or scale the towering pagoda to dismantle the syndicate floor by floor. Master martial arts combos, wield deadly black market weapons, unleash the legendary Dragon Knuckle, and reclaim the city!
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGE 2: THE FIGHTERS -->
+          <div class="manual-page hidden" data-page="2">
+            <div class="page-badge">CHAPTER 2: HEROES OF CHINATOWN</div>
+            <h2 class="page-heading">CHOOSE YOUR FIGHTER</h2>
+            <div class="fighter-manual-grid">
+              <div class="fighter-bio-card">
+                <div class="fighter-bio-header">
+                  <span class="fighter-name smellu">SMELLU</span>
+                  <span class="fighter-title">BALANCED DRAGON</span>
+                </div>
+                <div class="fighter-stat-row"><span>HP: 100</span><span>SPD: ★★★☆☆</span><span>PWR: ★★★☆☆</span></div>
+                <p class="fighter-desc">Master of balanced Dragon Kung-Fu. Excellent mid-range jabs, devastating rising dragon uppercuts, and the flaming 360° Ki Whirlwind special.</p>
+                <div class="fighter-weapons"><b>Starting Weapons:</b> Nunchaku, Dual Pistols, Twin Daggers</div>
+              </div>
+              <div class="fighter-bio-card">
+                <div class="fighter-bio-header">
+                  <span class="fighter-name lindin">LINDIN</span>
+                  <span class="fighter-title">AGILE VIPER</span>
+                </div>
+                <div class="fighter-stat-row"><span>HP: 85</span><span>SPD: ★★★★★</span><span>PWR: ★★☆☆☆</span></div>
+                <p class="fighter-desc">Lightning-fast assassin specializing in razor kunai, acrobatic somersaults, inverted Flash Kicks, and rapid multi-hit aerial hurricane kicks.</p>
+                <div class="fighter-weapons"><b>Starting Weapons:</b> Twin Daggers, Dual Pistols, Nunchaku</div>
+              </div>
+              <div class="fighter-bio-card">
+                <div class="fighter-bio-header">
+                  <span class="fighter-name smoro">SMORO</span>
+                  <span class="fighter-title">HEAVY IRON BULL</span>
+                </div>
+                <div class="fighter-stat-row"><span>HP: 130</span><span>SPD: ★★☆☆☆</span><span>PWR: ★★★★★</span></div>
+                <p class="fighter-desc">Colossal powerhouse with colossal armor and heavy iron strikes. Lunging gut punches, ground-shattering seismic heel stomps, and bone-crushing lead pipe swings.</p>
+                <div class="fighter-weapons"><b>Starting Weapons:</b> Lead Pipe, Dual Pistols, Nunchaku</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGE 3: CONTROLS & MOVEMENT -->
+          <div class="manual-page hidden" data-page="3">
+            <div class="page-badge">CHAPTER 3: ARCADE OPERATIONS</div>
+            <h2 class="page-heading">CONTROLS & 8-WAY BELT-SCROLLING</h2>
+            <table class="manual-table">
+              <thead>
+                <tr><th>Action</th><th>Keyboard</th><th>Gamepad</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><b>8-Way Move</b></td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>Arrows</kbd></td><td>D-Pad / Left Stick</td><td>Navigate lanes across 2.5D floor depth (Y: 152–264)</td></tr>
+                <tr><td><b>Dash</b></td><td>Double Tap <kbd>A</kbd>/<kbd>D</kbd> or <kbd>◀</kbd>/<kbd>▶</kbd></td><td>Double Tap D-Pad</td><td>High-speed sprint with sprint momentum</td></tr>
+                <tr><td><b>Punch / Attack</b></td><td><kbd>J</kbd> or <kbd>Z</kbd></td><td>X / A (Cross)</td><td>Basic attacks, weapon attacks, hold to charge Mega Punch</td></tr>
+                <tr><td><b>Kick / Finisher</b></td><td><kbd>K</kbd> or <kbd>X</kbd></td><td>B / Circle</td><td>Snappy kicks, overhead axe drops, cyclone kicks</td></tr>
+                <tr><td><b>Jump / Flip</b></td><td><kbd>Space</kbd></td><td>Y / Triangle / LB</td><td>Vertical jump (Dash+Jump: Front Flip | Back+Jump: Backflip)</td></tr>
+                <tr><td><b>Dragon Special</b></td><td><kbd>L</kbd> or <kbd>V</kbd></td><td>RB / R1</td><td>360° Ki screen clearer (consumes Ki meter)</td></tr>
+                <tr><td><b>Mega Punch</b></td><td><kbd>H</kbd> / <kbd>U</kbd> / Hold <kbd>J</kbd></td><td>RT / R2</td><td><b>DRAGON KNUCKLE</b> Falcon Punch homage with flaming dragon</td></tr>
+                <tr><td><b>Chinatown Store</b></td><td><kbd>B</kbd> or <kbd>M</kbd></td><td>Click [B] STORE</td><td>Open Black Market Armory to spend score currency</td></tr>
+                <tr><td><b>2P Companion</b></td><td><kbd>T</kbd> or <kbd>C</kbd></td><td>Settings / Hotkey</td><td>Instantly toggle AI co-op fighting partner ON/OFF</td></tr>
+                <tr><td><b>Game Manual</b></td><td><kbd>N</kbd></td><td>Click MANUAL</td><td>Open this official instruction booklet anytime</td></tr>
+                <tr><td><b>Pause & Resume</b></td><td><kbd>P</kbd> or <kbd>Escape</kbd></td><td>Start Button</td><td>Pause combat and review move list</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PAGE 4: MASTER MOVE LIST -->
+          <div class="manual-page hidden" data-page="4">
+            <div class="page-badge">CHAPTER 4: ADVANCED COMBAT ART</div>
+            <h2 class="page-heading">MASTER MOVE LIST & HYBRID CHAINS</h2>
+            <div class="move-grid">
+              <div class="move-card"><span class="move-name">5-Hit Punch Rush</span><span class="move-input"><kbd>J</kbd>x5</span><span class="move-desc">Lead Jab ➔ Straight Cross ➔ Gut Hook ➔ Stepping Elbow ➔ Dragon Palm Blast</span></div>
+              <div class="move-card"><span class="move-name">4-Hit Kick Chain</span><span class="move-input"><kbd>K</kbd>x4</span><span class="move-desc">Front Snap ➔ High Hook ➔ Overhead Axe Drop ➔ 360° Ground Cyclone Kick</span></div>
+              <div class="move-card"><span class="move-name">Rising Dragon Uppercut</span><span class="move-input"><kbd>⬆</kbd> + <kbd>J</kbd></span><span class="move-desc">Vertical Shoryu launcher soaring into the air with spiraling cyan dragon Ki</span></div>
+              <div class="move-card"><span class="move-name">Somersault Flash Kick</span><span class="move-input"><kbd>⬆</kbd> + <kbd>K</kbd></span><span class="move-desc">Inverted vertical Flash Kick with glowing crescent blade arc launcher</span></div>
+              <div class="move-card"><span class="move-name">Low Floor Sweep</span><span class="move-input"><kbd>⬇</kbd> + <kbd>K</kbd></span><span class="move-desc">Crouching circular sweep skimming along pavement tripping foes onto their backs</span></div>
+              <div class="move-card"><span class="move-name">Ground Knuckle Slam</span><span class="move-input"><kbd>⬇</kbd> + <kbd>J</kbd></span><span class="move-desc">Crouching downward fist smash blasting pavement with radial kinetic shockwaves</span></div>
+              <div class="move-card"><span class="move-name">Super Lunge Punch</span><span class="move-input">Forward + <kbd>J</kbd> or Dash+<kbd>J</kbd></span><span class="move-desc">Explosive flying Superman lunging punch launching enemies across the arena</span></div>
+              <div class="move-card"><span class="move-name">Reverse Backfist / Mule</span><span class="move-input">Backward + <kbd>J</kbd> or <kbd>K</kbd></span><span class="move-desc">Instant 180° counter-strike catching sneaking ambushers directly behind you</span></div>
+              <div class="move-card"><span class="move-name">One-Inch Ki Blast</span><span class="move-input"><kbd>K</kbd> ➔ <kbd>K</kbd> ➔ <kbd>J</kbd></span><span class="move-desc">Kicking combo into explosive close-range One-Inch Ki burst with extreme pushback</span></div>
+              <div class="move-card"><span class="move-name">Axe Kick Finisher</span><span class="move-input"><kbd>J</kbd> ➔ <kbd>J</kbd> ➔ <kbd>K</kbd></span><span class="move-desc">Jab and Cross directly into vertical Axe Heel Drop downward spike slam</span></div>
+              <div class="move-card"><span class="move-name">Air Hammer Drop</span><span class="move-input">Jump + <kbd>⬇</kbd> + <kbd>J</kbd></span><span class="move-desc">Double-fisted downward aerial hammer plunge spiking foes into the pavement</span></div>
+              <div class="move-card"><span class="move-name">Air Split Kick</span><span class="move-input">Neutral Jump + <kbd>K</kbd></span><span class="move-desc">180° horizontal aerial split kick hitting enemies on both sides simultaneously</span></div>
+            </div>
+          </div>
+
+          <!-- PAGE 5: THE DRAGON KNUCKLE -->
+          <div class="manual-page hidden" data-page="5">
+            <div class="page-badge">CHAPTER 5: THE ULTIMATE TECHNIQUE</div>
+            <h2 class="page-heading">DRAGON KNUCKLE (MEGA PUNCH)</h2>
+            <div class="manual-callout red">
+              <b>THE CAPTAIN FALCON HOMAGE:</b> Inspired by the legendary <i>"FALCON PUNCH"</i>, the Dragon Knuckle is the single most destructive move in Carpe's Kung Fu Rage!
+            </div>
+            <div class="page-columns">
+              <div>
+                <h3>PHASE 1: THE CHARGE</h3>
+                <p>Pull back into an immovable crane stance granted with <b>Super Armor</b>. Golden and cyan Ki particles vortex inward into your clenched fist with an 8-bit rising audio crescendo: <i>"DRAAAAGOON..."</i></p>
+              </div>
+              <div>
+                <h3>PHASE 2: ROCKET THRUST & IMPACT</h3>
+                <p>Rocket forward at extreme velocity (`vx = 8.4`). An enormous <b>Fiery Dragon Head</b> erupts from your knuckles with teeth, horns, and cyan eyes, blasting through crowds for <b>65 massive damage</b> and screen-clearing launch: <i>"...KNUCKLE!!!!"</i></p>
+              </div>
+            </div>
+            <div class="manual-callout gold" style="margin-top: 10px;">
+              <b>WAYS TO TRIGGER:</b> Press <kbd>H</kbd> or <kbd>U</kbd> • Hold Punch (<kbd>J</kbd>) for 0.35s and release • Dash + Punch • Forward + Special (<kbd>L</kbd>) • Gamepad <kbd>RT / R2</kbd> • Touch <kbd>MEGA</kbd> button!
+            </div>
+          </div>
+
+          <!-- PAGE 6: WEAPONS & DUAL PISTOLS -->
+          <div class="manual-page hidden" data-page="6">
+            <div class="page-badge">CHAPTER 6: COMBAT ARSENAL</div>
+            <h2 class="page-heading">WEAPONS & DUAL PISTOLS GUN-FU</h2>
+            <div class="weapon-manual-grid">
+              <div class="weapon-card">
+                <span class="weapon-badge">36 ROUNDS</span>
+                <h4>DUAL PISTOLS (GUN-FU)</h4>
+                <p>Akimbo twin semi-automatics. Unleash a full <b>4-hit Gun-Fu combo sequence</b> on the Punch button (<kbd>J</kbd>):</p>
+                <ul>
+                  <li><i>Hit 1:</i> Hip Snapshot (16 dmg)</li>
+                  <li><i>Hit 2:</i> Point-Blank Shot (18 dmg)</li>
+                  <li><i>Hit 3:</i> Pistol-Whip Bludgeon (22 dmg)</li>
+                  <li><i>Hit 4:</i> Akimbo Crossfire Barrage (32 dmg, knockback)</li>
+                  <li><i>Airborne:</i> Jumping downward akimbo sweep!</li>
+                </ul>
+                <small>High-speed bullet tracers, pixel muzzle flashes, tumbling brass shell casings with bounce physics!</small>
+              </div>
+              <div class="weapon-card">
+                <span class="weapon-badge">24 HITS</span>
+                <h4>BRUCE LEE NUNCHAKU</h4>
+                <p>Rapid-fire wooden whipping flurries (20 dmg) with spinning golden motion trails, wooden clack SFX, and high combo speed.</p>
+              </div>
+              <div class="weapon-card">
+                <span class="weapon-badge">20 HITS</span>
+                <h4>TWIN COMBAT DAGGERS</h4>
+                <p>Lethal razor cross-slashes (18 dmg) with cyan crescent arcs, metallic slicing SFX, and extra arterial green gore fountains!</p>
+              </div>
+              <div class="weapon-card">
+                <span class="weapon-badge">14 HITS</span>
+                <h4>STREETS OF RAGE LEAD PIPE</h4>
+                <p>Heavy bone-crushing smash (30 dmg) with massive horizontal knockback, launching enemies flat across the screen!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGE 7: CHINATOWN ARMORY -->
+          <div class="manual-page hidden" data-page="7">
+            <div class="page-badge">CHAPTER 7: BLACK MARKET ECONOMY</div>
+            <h2 class="page-heading">CHINATOWN BLACK MARKET ARMORY</h2>
+            <p>Access the in-game black market at any time during combat by pressing <kbd>B</kbd> or clicking the pulsing <b>[B] STORE</b> button on the HUD!</p>
+            <table class="manual-table">
+              <thead><tr><th>Item</th><th>Type</th><th>Cost</th><th>Effect / Description</th></tr></thead>
+              <tbody>
+                <tr><td><b>DUAL PISTOLS</b></td><td>Firearm</td><td>1,500 PTS</td><td>36 bullets, Gun-Fu combos, bullet tracers & brass shells</td></tr>
+                <tr><td><b>NUNCHAKU</b></td><td>Melee</td><td>1,000 PTS</td><td>24 hits, rapid whipping flurries & extended reach</td></tr>
+                <tr><td><b>TWIN DAGGERS</b></td><td>Melee</td><td>1,000 PTS</td><td>20 hits, lethal razor slashes & bonus green gore</td></tr>
+                <tr><td><b>LEAD PIPE</b></td><td>Blunt</td><td>1,200 PTS</td><td>14 hits, heavy bone-crushing smash with knockdown</td></tr>
+                <tr><td><b>PIZZA SLICE</b></td><td>Health</td><td>800 PTS</td><td>Fresh pepperoni slice restoring +50 Health instantly</td></tr>
+                <tr><td><b>DRAGON SCROLL</b></td><td>Ki Energy</td><td>1,200 PTS</td><td>Ancient scripture instantly filling Dragon Ki meter to 100%</td></tr>
+              </tbody>
+            </table>
+            <div class="manual-callout gold">
+              <b>DUAL ECONOMIC PURPOSE:</b> Your score serves a dual arcade purpose: climbing the high-score leaderboard AND spending on vital armory supplies to survive long marathon stages!
+            </div>
+          </div>
+
+          <!-- PAGE 8: GAME MODES -->
+          <div class="manual-page hidden" data-page="8">
+            <div class="page-badge">CHAPTER 8: TWO DISTINCT EXPERIENCES</div>
+            <h2 class="page-heading">GAME MODES: STREET BRAWL VS PAGODA ASCENT</h2>
+            <div class="page-columns">
+              <div class="manual-mode-card">
+                <h3>▶ MODE 1: STREET BRAWL (HORIZONTAL)</h3>
+                <ul>
+                  <li><b>Marathon Expanse:</b> Massive 16,000-pixel horizontal stages spanning 20 encounter zones.</li>
+                  <li><b>Dynamic Waves:</b> Street skirmishes, rooftop train combat, underground shrines, and reinforcement ambushes.</li>
+                  <li><b>Classic 2.5D:</b> Belt-scrolling camera tracking player forward progress with mini distance progress bar.</li>
+                </ul>
+              </div>
+              <div class="manual-mode-card highlight">
+                <h3>▲ MODE 2: PAGODA ASCENT (VERTICAL CLIMB)</h3>
+                <ul>
+                  <li><b>Vertical Tower Climb:</b> Ascend 20 ascending floors of multi-tiered pagodas, high-speed skyscraper elevators, and celestial crane summits!</li>
+                  <li><b>Floor-by-Floor Combat:</b> Defeat floor guardians to trigger the elevator ascent with high-speed rushing wind lines and altimeter readouts!</li>
+                  <li><b>All-New Backgrounds:</b> Lacquered pagoda balconies with swaying lanterns, cyberpunk skyscraper elevators with passing neon kanji, and extreme-altitude crane girders above boiling storm clouds!</li>
+                </ul>
+              </div>
+            </div>
+            <div class="manual-callout gold" style="margin-top: 10px;">
+              <b>HOW TO TOGGLE:</b> Press <kbd>M</kbd> on the Character Select screen or click the Mode Toggle button to instantly switch modes!
+            </div>
+          </div>
+
+          <!-- PAGE 9: 2P AI COMPANION -->
+          <div class="manual-page hidden" data-page="9">
+            <div class="page-badge">CHAPTER 9: CO-OP FIGHTING PARTNER</div>
+            <h2 class="page-heading">2P AI COMPANION SYSTEM</h2>
+            <p>Fight alongside an intelligent martial arts partner who covers your back, peels off flankers, and coordinates pincer combos against bosses!</p>
+            <div class="page-columns">
+              <div>
+                <h3>COMBAT TACTICS & ANTI-MIRRORING</h3>
+                <ul>
+                  <li><b>PINCER FLANKS:</b> Always encircles targets from the opposite side of the player on a staggered depth lane.</li>
+                  <li><b>ANTI-MIRROR PROTOCOL:</b> Deliberately chooses contrasting attacks (e.g. kicks/launchers when you punch) to prevent twin move cloning.</li>
+                  <li><b>REAR PERIMETER:</b> Guards outward defensively when in formation to watch your blind spots.</li>
+                  <li><b>BALANCED:</b> Smart positioning, flanking bosses, combo chains into specials.</li>
+                  <li><b>AGGRESSIVE:</b> Relentless frontal assault, dive kicks, frequent Mega Punches.</li>
+                  <li><b>PROTECTOR:</b> Bodyguard mode, sticks close to player, intercepts enemies targeting player.</li>
+                </ul>
+              </div>
+              <div>
+                <h3>REVIVAL MECHANIC</h3>
+                <p>If your partner is knocked out, they enter a 6-second recovery state with a live HUD timer. Once the timer expires, they leap back into combat with full health. You are never left permanently alone!</p>
+                <p><b>SUMMON HOTKEY:</b> Press <kbd>T</kbd> or <kbd>C</kbd> at any time to summon or dismiss your partner!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAGE 10: ENEMY BESTIARY -->
+          <div class="manual-page hidden" data-page="10">
+            <div class="page-badge">CHAPTER 10: ENEMY ARCHETYPES & BOSSES</div>
+            <h2 class="page-heading">SYNDICATE BESTIARY & STRATEGIES</h2>
+            <div class="bestiary-grid">
+              <div class="bestiary-item"><b>Street Thugs:</b> Pack rushers who flank and strike with brawler jabs. Disarm them for bonus weapons!</div>
+              <div class="bestiary-item"><b>Shadow Ninjas:</b> Agile shinobi with quick slash attacks and leap kicks. Counter with Low Sweeps!</div>
+              <div class="bestiary-item"><b>Heavy Bruisers:</b> High-poise tanks that wind up heavy haymakers. Use Rising Dragon or Dragon Knuckle!</div>
+              <div class="bestiary-item"><b>Blade Ronin:</b> Samurai in straw kasa hats delivering long-reach dash slashes. Jump or backflip over slashes!</div>
+              <div class="bestiary-item"><b>Tengu Kickers:</b> Acrobats in red Tengu masks delivering flying dive kicks. Intercept with Air Hammer Drop!</div>
+              <div class="bestiary-item"><b>Shadow Assassins:</b> Fast kunoichi in violet cowls with reverse-grip daggers. Keep them pinned with Gun-Fu!</div>
+              <div class="bestiary-item"><b>Club Giants:</b> 7-foot ogres with spiked iron kanabo clubs. Deliver devastating ground-shattering smashes.</div>
+              <div class="bestiary-item"><b>Rotten Zombies:</b> Decaying undead walking corpses! Double claw swipes and leaping acid saliva bites. Explode into massive green gore showers!</div>
+            </div>
+            <div class="manual-callout red" style="margin-top: 10px;">
+              <b>GRANDMASTER BOSSES:</b> Watch out for Master Shen's flying kicks, Iron Fang Oni's charging ground stomps, and Grandmaster Kuroda's imperial Shadow Dragon wave!
+            </div>
+          </div>
+
+          <!-- PAGE 11: SPEED SCALING & SECRETS -->
+          <div class="manual-page hidden" data-page="11">
+            <div class="page-badge">CHAPTER 11: PRO SECRETS & SCALING</div>
+            <h2 class="page-heading">DYNAMIC SPEED SCALING & SECRETS</h2>
+            <div class="page-columns">
+              <div>
+                <h3>ENEMY SPEED SCALING FORMULA</h3>
+                <p>Enemies become progressively faster and sharper the higher your score climbs!</p>
+                <div class="manual-formula">SPEED = 1.0 + (SCORE / 100) × 0.005</div>
+                <ul>
+                  <li><b>0 PTS:</b> 1.00x Base Speed (+0%)</li>
+                  <li><b>1,000 PTS:</b> 1.05x Speed (+5%)</li>
+                  <li><b>5,000 PTS:</b> 1.25x Speed (+25%)</li>
+                  <li><b>10,000 PTS:</b> 1.50x Speed (+50%)</li>
+                  <li><b>20,000 PTS:</b> 2.00x Speed (+100% / DOUBLE SPEED!)</li>
+                </ul>
+              </div>
+              <div>
+                <h3>PRO COMBAT TIPS</h3>
+                <ul>
+                  <li><b>Green Blood Floor Splatters:</b> Arterial green blood pools persist on rainy asphalt, reflecting neon lighting.</li>
+                  <li><b>Armed Enemy 100% Drops:</b> Regular enemies have a ~32% chance to spawn with weapons and guarantee a 100% drop on death!</li>
+                  <li><b>CRT Arcade Scanlines:</b> Toggle CRT scanlines, phosphor glow, and curved arcade monitor vignette via footer button.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="manual-footer">
+          <button id="manual-prev-btn" class="arcade-btn">◀ PREV</button>
+          <span id="manual-page-number" class="manual-page-num">PAGE 1 / 11</span>
+          <button id="manual-next-btn" class="arcade-btn">NEXT ▶</button>
+          <button id="manual-close-bottom" class="arcade-btn primary">CLOSE MANUAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RETRO ARCADE DEBUG CONSOLE & EVENT LOGGER MODAL -->
+    <div id="debug-console-modal" class="modal-overlay hidden">
+      <div class="debug-dialog arcade-card">
+        <div class="dialog-header">
+          <div class="dbg-title-cluster">
+            <span class="dbg-led-dot"></span>
+            <span class="dialog-title">SYSTEM DEBUG CONSOLE & EVENT LOG</span>
+          </div>
+          <button id="close-debug-console-btn" class="close-btn">&times;</button>
+        </div>
+
+        <!-- Live Telemetry & Stats Banner -->
+        <div class="dbg-stats-banner" id="dbg-stats-banner">
+          <span class="dbg-stat-tag live">[LIVE ACTIVE SESSION]</span>
+          <span>SCORE: <b>0</b></span>
+          <span>KOs: <b>0</b></span>
+          <span>HITS: <b>P:0 / AI:0</b></span>
+          <span>MAX COMBO: <b>x0</b></span>
+          <span>EVENTS: <b>0</b></span>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="dbg-toolbar">
+          <div class="dbg-filter-group">
+            <button class="dbg-filter-btn active" data-filter="ALL">ALL</button>
+            <button class="dbg-filter-btn" data-filter="SYSTEM">SYSTEM</button>
+            <button class="dbg-filter-btn" data-filter="PLAYER">PLAYER</button>
+            <button class="dbg-filter-btn" data-filter="COMPANION">AI COMPANION</button>
+            <button class="dbg-filter-btn" data-filter="ENEMY">ENEMY</button>
+            <button class="dbg-filter-btn" data-filter="COMBAT">COMBAT</button>
+            <button class="dbg-filter-btn" data-filter="STAGE">STAGE</button>
+          </div>
+          <div class="dbg-search-box">
+            <input type="text" id="dbg-search-input" placeholder="Search event log..." />
+            <button id="dbg-autoscroll-btn" class="dbg-tool-btn active">AUTO-SCROLL: ON</button>
+          </div>
+        </div>
+
+        <!-- Monospace Log Stream -->
+        <div class="dbg-log-stream" id="dbg-log-stream">
+          <!-- Dynamically populated rows -->
+        </div>
+
+        <!-- Console Action Footer -->
+        <div class="dbg-footer">
+          <div class="dbg-footer-left">
+            <button id="dbg-open-folder-btn" class="arcade-btn folder-btn">📁 LOGS FOLDER</button>
+            <button id="dbg-view-last-btn" class="arcade-btn">VIEW LAST SAVED GAME LOG</button>
+            <button id="dbg-copy-btn" class="arcade-btn">COPY TO CLIPBOARD</button>
+            <button id="dbg-export-json-btn" class="arcade-btn">EXPORT JSON</button>
+            <button id="dbg-export-txt-btn" class="arcade-btn">EXPORT TXT</button>
+          </div>
+          <div class="dbg-footer-right">
+            <button id="dbg-clear-btn" class="arcade-btn">CLEAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RETRO ARCADE SAVED LOGS FOLDER ARCHIVE MODAL -->
+    <div id="logs-folder-modal" class="modal-overlay hidden">
+      <div class="folder-dialog arcade-card">
+        <div class="dialog-header">
+          <div class="folder-title-cluster">
+            <span class="folder-icon">📁</span>
+            <span class="dialog-title">SAVED GAME LOGS FOLDER ARCHIVE</span>
+            <span id="folder-total-count" class="folder-count-badge">0 SESSIONS SAVED</span>
+          </div>
+          <button id="close-logs-folder-btn" class="close-btn">&times;</button>
+        </div>
+
+        <!-- Directory Status & Top Action Bar -->
+        <div class="folder-toolbar">
+          <div class="folder-toolbar-left">
+            <button id="link-logs-folder-btn" class="arcade-btn link-dir-btn">📂 LINK LOCAL "LOGS" FOLDER</button>
+            <button id="toggle-auto-download-btn" class="arcade-btn auto-dl-btn">AUTO-DOWNLOAD ON GAME OVER: OFF</button>
+          </div>
+          <div class="folder-toolbar-right">
+            <input type="text" id="folder-search-input" placeholder="Search sessions (fighter, mode, date)..." />
+            <button id="folder-clear-all-btn" class="arcade-btn danger-btn">CLEAR ARCHIVE</button>
+          </div>
+        </div>
+
+        <div id="folder-dir-status" class="folder-status-badge storage">
+          📁 STORAGE: BROWSER ARCHIVE (Link folder for direct disk saving)
+        </div>
+
+        <!-- Scrollable List of Individual Game Sessions -->
+        <div class="folder-session-list" id="folder-session-list">
+          <!-- Dynamically populated cards -->
+        </div>
+
+        <div class="dialog-footer folder-footer">
+          <span class="folder-hint">💡 Each game automatically creates an individual JSON & TXT record. Click "VIEW" to inspect inside the Debug Console, or "JSON" / "TXT" to download!</span>
+          <button id="folder-close-bottom-btn" class="arcade-btn primary" onclick="document.getElementById('logs-folder-modal').classList.add('hidden')">CLOSE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="src/logger.js"></script>
+  <script src="src/learning.js"></script>
+  <script src="src/audio.js"></script>
+  <script src="src/sprites.js"></script>
+  <script src="src/combat.js"></script>
+  <script src="src/weather.js"></script>
+  <script src="src/entities.js"></script>
+  <script src="src/stage.js"></script>
+  <script src="src/input.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>

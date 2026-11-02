@@ -1,0 +1,9 @@
+# Runtime Logs
+LOGS/*.json
+LOGS/*.txt
+!LOGS/.gitkeep
+
+# System & OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

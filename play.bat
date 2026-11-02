@@ -1,0 +1,3 @@
+@echo off
+echo Starting CARPE'S KUNG FU RAGE in your default browser...
+start index.html
