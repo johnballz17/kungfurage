@@ -76,6 +76,7 @@ class Game {
     this.titleBlink = 0;
     this.victoryTimer = 0;
     this.stageTransition = null;
+    this.volumeToastTimer = 0;
 
     // Periodic random battle anthem (The Tiger's Trap) roughly every 10 minutes in combat
     this.tigerTrapCombatTimer = 0;
@@ -105,6 +106,7 @@ class Game {
       this.breakables = [];
       this.pickups = [];
       this.stageTransition = null;
+    this.volumeToastTimer = 0;
       if (this.player) {
         this.player.x = (this.gameMode === 'VERTICAL') ? 240 : 100;
         this.player.y = 205;
@@ -166,15 +168,8 @@ class Game {
       });
     }
 
-    // Audio Toggle
-    const soundBtn = document.getElementById('toggle-sound');
-    if (soundBtn) {
-      soundBtn.addEventListener('click', () => {
-        window.soundEngine.resume();
-        const isMuted = window.soundEngine.toggleMute();
-        soundBtn.innerText = `AUDIO: ${isMuted ? 'OFF' : 'ON'}`;
-      });
-    }
+    // Initialize Unified Master/BGM/SFX Volume Controls
+    this.initVolumeControls();
 
     // Touch Toggle
     const touchBtn = document.getElementById('toggle-touch');
@@ -361,6 +356,7 @@ class Game {
     this.breakables = [];
     this.pickups = [];
     this.stageTransition = null;
+    this.volumeToastTimer = 0;
     this.tigerTrapCombatTimer = 0;
     this.nextTigerTrapInterval = 600 + (Math.random() * 120 - 60);
 
@@ -390,6 +386,29 @@ class Game {
   update(dt) {
     const input = window.inputManager;
     this.titleBlink += dt * 3.5;
+
+    // Volume toast timer countdown
+    if (this.volumeToastTimer > 0) {
+      this.volumeToastTimer -= dt;
+    }
+
+    // Audio Volume Hotkeys: - / + or [ / ], 0 for mute
+    const volDownPressed = (input.keys['Minus'] && !input.prevKeys['Minus']) ||
+                           (input.keys['NumpadSubtract'] && !input.prevKeys['NumpadSubtract']) ||
+                           (input.keys['BracketLeft'] && !input.prevKeys['BracketLeft']);
+    const volUpPressed = (input.keys['Equal'] && !input.prevKeys['Equal']) ||
+                         (input.keys['NumpadAdd'] && !input.prevKeys['NumpadAdd']) ||
+                         (input.keys['BracketRight'] && !input.prevKeys['BracketRight']);
+    const mutePressed = (input.keys['Digit0'] && !input.prevKeys['Digit0']) ||
+                        (input.keys['Numpad0'] && !input.prevKeys['Numpad0']);
+
+    if (volDownPressed) {
+      this.adjustVolume(-0.05);
+    } else if (volUpPressed) {
+      this.adjustVolume(+0.05);
+    } else if (mutePressed) {
+      this.toggleAudioMute();
+    }
 
     // Open Settings via KeyO shortcut
     if (input.keys['KeyO'] && !input.prevKeys['KeyO']) {
@@ -426,6 +445,7 @@ class Game {
                            (input.keys['KeyN'] && !input.prevKeys['KeyN']) ||
                            (input.keys['KeyO'] && !input.prevKeys['KeyO']) ||
                            (input.keys['KeyQ'] && !input.prevKeys['KeyQ']) ||
+                           volDownPressed || volUpPressed || mutePressed ||
                            input.isActionJustPressed('mode') ||
                            input.isActionJustPressed('manual');
       if (!isControlKey) {
@@ -535,6 +555,7 @@ class Game {
       if (this.stageTransition.timer <= 0) {
         const nextStage = this.stageTransition.toStage;
         this.stageTransition = null;
+    this.volumeToastTimer = 0;
         this.stage.loadStage(nextStage);
         this.player.x = (this.stage.gameMode === 'VERTICAL') ? 240 : 100;
         this.player.y = 210;
@@ -962,11 +983,13 @@ class Game {
 
     if (this.gameState === 'TITLE') {
       this.renderTitleScreen(ctx);
+      this.renderVolumeToast(ctx);
       return;
     }
 
     if (this.gameState === 'CHARACTER_SELECT') {
       this.renderCharacterSelect(ctx);
+      this.renderVolumeToast(ctx);
       return;
     }
 
@@ -1037,6 +1060,9 @@ class Game {
     } else if (this.gameState === 'VICTORY') {
       this.renderVictoryOverlay(ctx);
     }
+
+    // 6. Draw Master Volume HUD Feedback Toast
+    this.renderVolumeToast(ctx);
 
     ctx.restore(); // Restore screen shake
   }
@@ -1616,11 +1642,15 @@ class Game {
     ctx.font = '8px "Press Start 2P"';
     ctx.fillText(`DIFFICULTY: ${this.difficulty}`, 240, 115);
     ctx.fillText(`2P COMPANION: ${this.companionEnabled ? 'ENABLED' : 'DISABLED'}`, 240, 130);
+    const volStr = window.soundEngine && window.soundEngine.isMuted
+      ? 'MUTED'
+      : `${Math.round((window.soundEngine ? window.soundEngine.getMasterVolume() : 0.7) * 100)}%`;
+    ctx.fillText(`AUDIO: ${volStr} (HOTKEYS: - / +)`, 240, 145);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '7px "Press Start 2P"';
-    ctx.fillText('PRESS P OR ESC TO RESUME', 240, 160);
-    ctx.fillText('PRESS O OR CLICK SETTINGS BUTTON', 240, 178);
+    ctx.fillText('PRESS P OR ESC TO RESUME', 240, 170);
+    ctx.fillText('PRESS O OR CLICK SETTINGS BUTTON', 240, 186);
   }
 
   renderGameOverOverlay(ctx) {
@@ -1877,33 +1907,8 @@ class Game {
         });
       });
 
-      // Volume Sliders
-      const bgmSlider = document.getElementById('bgm-volume-slider');
-      const bgmDisplay = document.getElementById('bgm-vol-display');
-      if (bgmSlider) {
-        bgmSlider.value = Math.round(window.soundEngine.getBGMVolume() * 100);
-        if (bgmDisplay) bgmDisplay.innerText = `${bgmSlider.value}%`;
-        bgmSlider.addEventListener('input', (e) => {
-          const val = parseFloat(e.target.value) / 100;
-          window.soundEngine.setBGMVolume(val);
-          if (bgmDisplay) bgmDisplay.innerText = `${e.target.value}%`;
-        });
-      }
-
-      const sfxSlider = document.getElementById('sfx-volume-slider');
-      const sfxDisplay = document.getElementById('sfx-vol-display');
-      if (sfxSlider) {
-        sfxSlider.value = Math.round(window.soundEngine.getSFXVolume() * 100);
-        if (sfxDisplay) sfxDisplay.innerText = `${sfxSlider.value}%`;
-        sfxSlider.addEventListener('input', (e) => {
-          const val = parseFloat(e.target.value) / 100;
-          window.soundEngine.setSFXVolume(val);
-          if (sfxDisplay) sfxDisplay.innerText = `${e.target.value}%`;
-        });
-        sfxSlider.addEventListener('change', () => {
-          window.soundEngine.playHit(false);
-        });
-      }
+      // Synchronize initial Volume Sliders
+      this.syncVolumeUI();
 
       // Visual Accessibility Options (Screen Shake & Screen Flashing)
       const shakeBtn = document.getElementById('toggle-screenshake-btn');
@@ -1965,19 +1970,181 @@ class Game {
       btn.classList.toggle('active', isCurrent);
     });
 
+    this.syncVolumeUI();
+  }
+
+  // ==========================================
+  // UNIFIED MASTER, BGM & SFX VOLUME CONTROLS
+  // ==========================================
+  initVolumeControls() {
+    const quickMuteBtn = document.getElementById('quick-mute-btn');
+    const quickSlider = document.getElementById('quick-volume-slider');
+    const soundBtn = document.getElementById('toggle-sound');
+    const masterSlider = document.getElementById('master-volume-slider');
+    const bgmSlider = document.getElementById('bgm-volume-slider');
+    const sfxSlider = document.getElementById('sfx-volume-slider');
+
+    if (quickMuteBtn) {
+      quickMuteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleAudioMute();
+      });
+    }
+
+    if (quickSlider) {
+      quickSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) / 100;
+        if (window.soundEngine) {
+          window.soundEngine.resume();
+          window.soundEngine.setMasterVolume(val);
+        }
+        this.syncVolumeUI();
+        this.triggerVolumeToast();
+      });
+      quickSlider.addEventListener('change', () => {
+        if (window.soundEngine) window.soundEngine.playPickup();
+      });
+    }
+
+    if (soundBtn) {
+      soundBtn.addEventListener('click', () => {
+        this.toggleAudioMute();
+      });
+    }
+
+    if (masterSlider) {
+      masterSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) / 100;
+        if (window.soundEngine) {
+          window.soundEngine.resume();
+          window.soundEngine.setMasterVolume(val);
+        }
+        this.syncVolumeUI();
+        this.triggerVolumeToast();
+      });
+      masterSlider.addEventListener('change', () => {
+        if (window.soundEngine) window.soundEngine.playPickup();
+      });
+    }
+
+    if (bgmSlider) {
+      bgmSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) / 100;
+        if (window.soundEngine) window.soundEngine.setBGMVolume(val);
+        this.syncVolumeUI();
+      });
+    }
+
+    if (sfxSlider) {
+      sfxSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) / 100;
+        if (window.soundEngine) window.soundEngine.setSFXVolume(val);
+        this.syncVolumeUI();
+      });
+      sfxSlider.addEventListener('change', () => {
+        if (window.soundEngine) window.soundEngine.playHit(false);
+      });
+    }
+
+    this.syncVolumeUI();
+  }
+
+  syncVolumeUI() {
+    if (!window.soundEngine) return;
+    const isMuted = window.soundEngine.isMuted;
+    const masterPct = Math.round(window.soundEngine.getMasterVolume() * 100);
+    const bgmPct = Math.round(window.soundEngine.getBGMVolume() * 100);
+    const sfxPct = Math.round(window.soundEngine.getSFXVolume() * 100);
+
+    const quickMuteBtn = document.getElementById('quick-mute-btn');
+    if (quickMuteBtn) {
+      quickMuteBtn.innerText = isMuted ? '🔇' : '🔊';
+      quickMuteBtn.classList.toggle('muted', isMuted);
+      quickMuteBtn.title = isMuted ? 'Unmute Audio (Hotkey: 0)' : 'Mute Audio (Hotkey: 0)';
+    }
+
+    const quickSlider = document.getElementById('quick-volume-slider');
+    const quickDisplay = document.getElementById('quick-volume-display');
+    if (quickSlider) quickSlider.value = isMuted ? 0 : masterPct;
+    if (quickDisplay) quickDisplay.innerText = isMuted ? 'MUTE' : `${masterPct}%`;
+
+    const masterSlider = document.getElementById('master-volume-slider');
+    const masterDisplay = document.getElementById('master-vol-display');
+    if (masterSlider) masterSlider.value = isMuted ? 0 : masterPct;
+    if (masterDisplay) masterDisplay.innerText = isMuted ? 'MUTED' : `${masterPct}%`;
+
     const bgmSlider = document.getElementById('bgm-volume-slider');
     const bgmDisplay = document.getElementById('bgm-vol-display');
-    if (bgmSlider) {
-      bgmSlider.value = Math.round(window.soundEngine.getBGMVolume() * 100);
-      if (bgmDisplay) bgmDisplay.innerText = `${bgmSlider.value}%`;
-    }
+    if (bgmSlider) bgmSlider.value = bgmPct;
+    if (bgmDisplay) bgmDisplay.innerText = `${bgmPct}%`;
 
     const sfxSlider = document.getElementById('sfx-volume-slider');
     const sfxDisplay = document.getElementById('sfx-vol-display');
-    if (sfxSlider) {
-      sfxSlider.value = Math.round(window.soundEngine.getSFXVolume() * 100);
-      if (sfxDisplay) sfxDisplay.innerText = `${sfxSlider.value}%`;
+    if (sfxSlider) sfxSlider.value = sfxPct;
+    if (sfxDisplay) sfxDisplay.innerText = `${sfxPct}%`;
+
+    const soundBtn = document.getElementById('toggle-sound');
+    if (soundBtn) {
+      soundBtn.innerText = isMuted ? 'AUDIO: OFF' : `VOL: ${masterPct}%`;
     }
+  }
+
+  adjustVolume(delta) {
+    if (!window.soundEngine) return;
+    window.soundEngine.resume();
+    window.soundEngine.adjustMasterVolume(delta);
+    this.syncVolumeUI();
+    this.triggerVolumeToast();
+  }
+
+  toggleAudioMute() {
+    if (!window.soundEngine) return;
+    window.soundEngine.resume();
+    window.soundEngine.toggleMute();
+    this.syncVolumeUI();
+    this.triggerVolumeToast();
+  }
+
+  triggerVolumeToast() {
+    this.volumeToastTimer = 1.6;
+  }
+
+  renderVolumeToast(ctx) {
+    if (this.volumeToastTimer <= 0) return;
+    const isMuted = window.soundEngine ? window.soundEngine.isMuted : false;
+    const vol = window.soundEngine ? Math.round(window.soundEngine.getMasterVolume() * 100) : 70;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    const bx = 160, by = 42, bw = 160, bh = 22;
+    ctx.fillStyle = 'rgba(10, 5, 20, 0.92)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = isMuted ? '#ff2a6d' : '#05d9e8';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx, by, bw, bh);
+
+    if (isMuted) {
+      ctx.fillStyle = '#ff2a6d';
+      ctx.font = '7px "Press Start 2P", monospace';
+      ctx.fillText('🔇 AUDIO MUTED', 240, by + 14);
+    } else {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '6px "Press Start 2P", monospace';
+      ctx.fillText(`🔊 MASTER VOL: ${vol}%`, 240, by + 8);
+
+      // Mini retro progress bar
+      const pbX = bx + 16, pbY = by + 11, pbW = 128, pbH = 5;
+      ctx.fillStyle = '#1a102a';
+      ctx.fillRect(pbX, pbY, pbW, pbH);
+      ctx.fillStyle = '#05d9e8';
+      ctx.fillRect(pbX, pbY, Math.round(pbW * (vol / 100)), pbH);
+      ctx.strokeStyle = '#443366';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pbX, pbY, pbW, pbH);
+    }
+
+    ctx.restore();
   }
 
   refreshSettingsUI() {

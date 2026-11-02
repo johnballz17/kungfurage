@@ -23,9 +23,11 @@ class SoundEngine {
     this.step = 0;
     this.tempo = 132; // BPM
     
-    // Volume levels (0.0 to 1.0)
+    // Master, BGM and SFX volume levels (0.0 to 1.0)
+    const savedMaster = localStorage.getItem('kungfu_master_vol');
     const savedBgm = localStorage.getItem('kungfu_bgm_vol');
     const savedSfx = localStorage.getItem('kungfu_sfx_vol');
+    this.masterVolume = savedMaster !== null ? parseFloat(savedMaster) : 0.70;
     this.bgmVolume = savedBgm !== null ? parseFloat(savedBgm) : 0.65;
     this.sfxVolume = savedSfx !== null ? parseFloat(savedSfx) : 0.75;
 
@@ -67,7 +69,8 @@ class SoundEngine {
     
     this.ctx = new AudioContext();
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.35, this.ctx.currentTime);
+    const initMasterGain = this.isMuted ? 0 : (this.masterVolume * 0.45);
+    this.masterGain.gain.setValueAtTime(initMasterGain, this.ctx.currentTime);
     this.masterGain.connect(this.ctx.destination);
 
     // SFX Bus
@@ -161,12 +164,40 @@ class SoundEngine {
   toggleMute() {
     this.isMuted = !this.isMuted;
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.35, this.ctx.currentTime);
+      const effectiveGain = this.isMuted ? 0 : (this.masterVolume * 0.45);
+      this.masterGain.gain.setValueAtTime(effectiveGain, this.ctx.currentTime);
     }
     if (this.currentAudioElement) {
-      this.currentAudioElement.volume = this.isMuted ? 0 : this.bgmVolume;
+      this.currentAudioElement.volume = this.isMuted ? 0 : Math.max(0, Math.min(1, this.bgmVolume * this.masterVolume));
     }
     return this.isMuted;
+  }
+
+  setMasterVolume(val) {
+    this.masterVolume = Math.max(0, Math.min(1, val));
+    localStorage.setItem('kungfu_master_vol', this.masterVolume.toString());
+    if (this.masterVolume > 0 && this.isMuted) {
+      this.isMuted = false;
+    }
+    if (this.masterGain && this.ctx) {
+      const effectiveGain = this.isMuted ? 0 : (this.masterVolume * 0.45);
+      this.masterGain.gain.setValueAtTime(effectiveGain, this.ctx.currentTime);
+    }
+    if (this.currentAudioElement) {
+      this.currentAudioElement.volume = this.isMuted ? 0 : Math.max(0, Math.min(1, this.bgmVolume * this.masterVolume));
+    }
+    return this.masterVolume;
+  }
+
+  getMasterVolume() {
+    return this.masterVolume;
+  }
+
+  adjustMasterVolume(delta) {
+    this.resume();
+    const newVol = Math.round((this.masterVolume + delta) * 100) / 100;
+    this.setMasterVolume(newVol);
+    return this.masterVolume;
   }
 
   setBGMVolume(val) {
@@ -176,7 +207,7 @@ class SoundEngine {
       this.bgmGain.gain.setValueAtTime(this.bgmVolume * 0.5, this.ctx.currentTime);
     }
     if (this.currentAudioElement) {
-      this.currentAudioElement.volume = this.isMuted ? 0 : this.bgmVolume;
+      this.currentAudioElement.volume = this.isMuted ? 0 : Math.max(0, Math.min(1, this.bgmVolume * this.masterVolume));
     }
   }
 
@@ -232,7 +263,7 @@ class SoundEngine {
     try {
       const audio = new Audio(src);
       audio.loop = !!loop;
-      audio.volume = this.isMuted ? 0 : this.bgmVolume;
+      audio.volume = this.isMuted ? 0 : Math.max(0, Math.min(1, this.bgmVolume * this.masterVolume));
       audio.onended = () => {
         if (onEnded) onEnded();
       };

@@ -43,6 +43,7 @@ An old-school retro beat 'em up arcade / NES side-scroller paying tribute to **K
 | **Evasive Backflip** | Backward + <kbd>Space</kbd> | Defensive reverse somersault with invulnerability frames and cyan evasion arc |
 | **Dragon Special Move** | <kbd>L</kbd> or <kbd>V</kbd> | 360° Flaming Whirlwind / Ki blast (uses Ki meter) |
 | **Settings Menu** | <kbd>O</kbd> or click **SETTINGS** | Open Settings modal: Change Difficulty, AI Companion options, 8-Bit Soundtrack Jukebox, Volume sliders & Remap Keybinds |
+| **Volume Controls** | <kbd>-</kbd> / <kbd>+</kbd> or <kbd>[</kbd> / <kbd>]</kbd> (Vol), <kbd>0</kbd> (Mute) | Real-time master volume adjustment with on-screen HUD feedback toast, arcade marquee slider & mute button |
 | **Toggle AI Companion** | <kbd>T</kbd> or <kbd>C</kbd> | Instantly toggle your 2P Co-Op AI Partner ON/OFF at any time (Character Select, Title, or in-game) |
 | **Pause** | <kbd>P</kbd> or <kbd>Escape</kbd> | Pause & view move list |
 

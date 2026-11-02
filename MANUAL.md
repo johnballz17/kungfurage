@@ -67,6 +67,7 @@ Take to the streets or ascend the pagoda to dismantle the syndicate floor by flo
 | **Instruction Manual** | <kbd>N</kbd> or click `MANUAL` | Click `[N] MANUAL` | Open in-game interactive booklet |
 | **2P AI Companion** | <kbd>T</kbd> or <kbd>C</kbd> | Hotkey | Summon or dismiss your 2P Co-Op fighting partner |
 | **Settings Menu** | <kbd>O</kbd> | Click `SETTINGS` | Difficulty, Jukebox, Audio, Keybinds |
+| **Volume Control** | <kbd>-</kbd> / <kbd>+</kbd> or <kbd>[</kbd> / <kbd>]</kbd>, <kbd>0</kbd> (Mute) | Marquee Slider | Adjust master volume on the fly with HUD toast |
 | **Pause Game** | <kbd>P</kbd> or <kbd>Escape</kbd> | Start Button | Pause combat and inspect move list |
 
 ---

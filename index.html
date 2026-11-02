@@ -18,6 +18,14 @@
         <span class="neon-red">CARPE'S</span> <span class="neon-gold">KUNG FU RAGE</span>
         <span class="sub-title">~ SHADOWS OF CHINATOWN ~</span>
       </div>
+      <!-- Quick Arcade Master Volume Bar -->
+      <div class="marquee-volume-cluster" title="Quick Master Volume (Hotkeys: - / + or [ / ], 0 to Mute)">
+        <button id="quick-mute-btn" class="arcade-vol-btn" title="Toggle Mute (Hotkey: 0)" aria-label="Toggle Mute">🔊</button>
+        <div class="marquee-slider-wrap">
+          <input type="range" id="quick-volume-slider" min="0" max="100" value="70" class="arcade-slider marquee-slider" title="Master Volume (- / +)">
+          <span id="quick-volume-display" class="marquee-vol-val">70%</span>
+        </div>
+      </div>
       <div class="marquee-lights right"></div>
     </header>
 
@@ -72,7 +80,8 @@
         </div>
         <div class="control-col">
           <span class="ctrl-heading">GAMEPAD & SETTINGS</span>
-          <span class="ctrl-key">Xbox/PS Controller: Supported!</span>
+          <span class="ctrl-key">Xbox/PS Gamepad: Supported!</span>
+          <span class="ctrl-key">Audio: <kbd>-</kbd> / <kbd>+</kbd> or <kbd>[</kbd> / <kbd>]</kbd> (Vol), <kbd>0</kbd> (Mute)</span>
           <div class="toggle-buttons">
             <button id="toggle-scanlines" class="arcade-btn">CRT: ON</button>
             <button id="toggle-sound" class="arcade-btn">AUDIO: ON</button>
@@ -98,7 +107,7 @@
         <div class="settings-tabs">
           <button class="tab-btn active" data-tab="tab-difficulty">DIFFICULTY</button>
           <button class="tab-btn" data-tab="tab-companion">AI COMPANION</button>
-          <button class="tab-btn" data-tab="tab-soundtrack">8-BIT SOUNDTRACK</button>
+          <button class="tab-btn" data-tab="tab-soundtrack">AUDIO & SOUNDTRACK</button>
           <button class="tab-btn" data-tab="tab-keybinds">KEYBINDS</button>
           <button class="tab-btn" data-tab="tab-debug">LOG & DEBUG</button>
           <button id="open-manual-tab-btn" class="tab-btn manual-tab-btn">MANUAL 📖</button>
@@ -280,16 +289,23 @@
           <div class="settings-group">
             <span class="group-label">VOLUME CONTROLS</span>
             <div class="volume-sliders-container">
+              <div class="volume-slider-row master-vol-row">
+                <div class="vol-header">
+                  <span class="master-vol-title">🔊 MASTER VOLUME:</span>
+                  <span id="master-vol-display" class="vol-percent">70%</span>
+                </div>
+                <input type="range" id="master-volume-slider" min="0" max="100" value="70" class="arcade-slider master-slider">
+              </div>
               <div class="volume-slider-row">
                 <div class="vol-header">
-                  <span>MUSIC VOLUME:</span>
+                  <span>🎵 MUSIC VOLUME:</span>
                   <span id="bgm-vol-display" class="vol-percent">65%</span>
                 </div>
                 <input type="range" id="bgm-volume-slider" min="0" max="100" value="65" class="arcade-slider">
               </div>
               <div class="volume-slider-row">
                 <div class="vol-header">
-                  <span>SFX VOLUME:</span>
+                  <span>💥 SFX VOLUME:</span>
                   <span id="sfx-vol-display" class="vol-percent">75%</span>
                 </div>
                 <input type="range" id="sfx-volume-slider" min="0" max="100" value="75" class="arcade-slider">

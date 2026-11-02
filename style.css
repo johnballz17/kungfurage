@@ -94,6 +94,85 @@ body {
   100% { opacity: 1; transform: scale(1.1); }
 }
 
+/* Marquee Quick Volume Controller */
+.marquee-volume-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(17, 13, 26, 0.85);
+  border: 1px solid #ff2a6d;
+  border-radius: 6px;
+  padding: 4px 10px;
+  box-shadow: 0 0 10px rgba(255, 42, 109, 0.25), inset 0 0 6px rgba(0, 0, 0, 0.6);
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.arcade-vol-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px;
+  transition: transform 0.1s ease, filter 0.15s ease;
+  filter: drop-shadow(0 0 4px #ffd700);
+}
+
+.arcade-vol-btn:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px #05d9e8);
+}
+
+.arcade-vol-btn.muted {
+  filter: grayscale(1) drop-shadow(0 0 4px #ff2a6d);
+  opacity: 0.7;
+}
+
+.marquee-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.marquee-slider {
+  width: 75px;
+  height: 6px;
+  cursor: pointer;
+}
+
+.marquee-vol-val {
+  font-size: 8px;
+  color: #ffd700;
+  min-width: 32px;
+  text-align: right;
+  letter-spacing: 0;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.6);
+}
+
+.master-vol-row {
+  background: rgba(255, 42, 109, 0.12);
+  border: 1px solid rgba(255, 42, 109, 0.4);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+}
+
+.master-vol-title {
+  color: #05d9e8;
+  font-weight: bold;
+}
+
+.master-slider::-webkit-slider-thumb {
+  background: #ff2a6d;
+  box-shadow: 0 0 10px #ff2a6d;
+}
+
+.master-slider::-moz-range-thumb {
+  background: #ff2a6d;
+  box-shadow: 0 0 10px #ff2a6d;
+}
+
 /* Screen Wrapper */
 #screen-wrapper {
   position: relative;
@@ -1003,6 +1082,16 @@ kbd {
 }
 
 @media (max-width: 600px) {
+  .arcade-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    padding: 8px 10px;
+  }
+  .marquee-volume-cluster {
+    margin-left: 0;
+    margin-top: 4px;
+  }
   .neon-red, .neon-gold { font-size: 13px; letter-spacing: 1px; }
   .sub-title { font-size: 7px; }
   .controls-panel { grid-template-columns: 1fr; }
