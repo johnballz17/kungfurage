@@ -29,7 +29,16 @@ class WeatherSystem {
     // Stage 1: Rainy Neon Alleyway
     // Stage 2: Moonlit Wind & Rooftop Gusts
     // Stage 3: Underground Shrine with Torches and Fire Embers
-    this.rainEnabled = (stageNum === 1 || stageNum === 2);
+    if (stageNum === 1) {
+      this.rainEnabled = true;
+    } else if (stageNum === 2) {
+      this.rainEnabled = true;
+    } else if (stageNum === 3) {
+      this.rainEnabled = false;
+    } else {
+      // Procedural weather: rotates rain, storms, and atmospheric conditions
+      this.rainEnabled = (stageNum % 3 !== 0);
+    }
   }
 
   update(dt, stage) {

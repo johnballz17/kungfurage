@@ -1297,17 +1297,24 @@ class SoundEngine {
       return;
     }
 
-    // 5. Stage Gameplay Soundtrack Loops
-    if (theme === 'stage1' || theme === 'stage') {
+    // 5. Stage Gameplay Soundtrack Loops (supports infinite procedural stages)
+    let resolvedTheme = theme;
+    if (typeof theme === 'string' && theme.startsWith('stage') && theme !== 'stage1' && theme !== 'stage2' && theme !== 'stage3') {
+      const stageNum = parseInt(theme.replace('stage', ''), 10) || 1;
+      const themeRotation = ['stage1', 'stage2', 'stage3'];
+      resolvedTheme = themeRotation[(stageNum - 1) % 3];
+    }
+
+    if (resolvedTheme === 'stage1' || resolvedTheme === 'stage') {
       this.tempo = 130;
       this.playStage1RockLoop();
-    } else if (theme === 'stage2') {
+    } else if (resolvedTheme === 'stage2') {
       this.tempo = 146;
       this.playStage2RockLoop();
-    } else if (theme === 'stage3') {
+    } else if (resolvedTheme === 'stage3') {
       this.tempo = 136;
       this.playStage3RockLoop();
-    } else if (theme === 'boss') {
+    } else if (resolvedTheme === 'boss') {
       this.tempo = 152;
       this.playBossRockLoop();
     }

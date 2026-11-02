@@ -47,8 +47,33 @@ class Stage {
     this.loadStage(1);
   }
 
+  getStageName(stageNum = this.currentStageNum) {
+    if (this.gameMode === 'VERTICAL') {
+      if (this.gameMode !== 'ENDLESS' && this.verticalStageNames[stageNum]) {
+        return this.verticalStageNames[stageNum];
+      }
+      const floorStart = (stageNum - 1) * 20 + 1;
+      const floorEnd = stageNum * 20;
+      return `PAGODA SECTOR ${stageNum} (FLOORS ${floorStart}-${floorEnd})`;
+    }
+    if (this.gameMode !== 'ENDLESS' && this.horizontalStageNames[stageNum]) {
+      return this.horizontalStageNames[stageNum];
+    }
+    const proc = this.getProceduralStageName(stageNum);
+    return proc.title;
+  }
+
   get stageNames() {
-    return this.gameMode === 'VERTICAL' ? this.verticalStageNames : this.horizontalStageNames;
+    const self = this;
+    return new Proxy({}, {
+      get(target, prop) {
+        const num = parseInt(prop, 10);
+        if (!isNaN(num)) {
+          return self.getStageName(num);
+        }
+        return `STAGE ${prop}`;
+      }
+    });
   }
 
   setGameMode(mode) {
@@ -72,7 +97,7 @@ class Stage {
     this.isAscending = false;
 
     if (typeof window !== 'undefined' && window.gameLogger) {
-      const stageName = this.stageNames[stageNum] || `Stage ${stageNum}`;
+      const stageName = this.getStageName(stageNum);
       window.gameLogger.log('STAGE', `Loaded Stage ${stageNum} (${this.gameMode}): ${stageName}`);
     }
     this.ascentTimer = 0;
@@ -87,23 +112,27 @@ class Stage {
       this.width = 480;
       this.minY = 160;
       this.maxY = 255;
-      if (stageNum === 1) {
+      if (stageNum === 1 && this.gameMode !== 'ENDLESS') {
         this.zones = this.createVerticalStage1Zones();
-      } else if (stageNum === 2) {
+      } else if (stageNum === 2 && this.gameMode !== 'ENDLESS') {
         this.zones = this.createVerticalStage2Zones();
-      } else if (stageNum === 3) {
+      } else if (stageNum === 3 && this.gameMode !== 'ENDLESS') {
         this.zones = this.createVerticalStage3Zones();
+      } else {
+        this.zones = this.createProceduralVerticalStageZones(stageNum);
       }
     } else {
       this.width = 16000;
       this.minY = 152;
       this.maxY = 264;
-      if (stageNum === 1) {
+      if (stageNum === 1 && this.gameMode !== 'ENDLESS') {
         this.zones = this.createStage1Zones();
-      } else if (stageNum === 2) {
+      } else if (stageNum === 2 && this.gameMode !== 'ENDLESS') {
         this.zones = this.createStage2Zones();
-      } else if (stageNum === 3) {
+      } else if (stageNum === 3 && this.gameMode !== 'ENDLESS') {
         this.zones = this.createStage3Zones();
+      } else {
+        this.zones = this.createProceduralStageZones(stageNum);
       }
     }
   }
@@ -1248,6 +1277,239 @@ class Stage {
     }));
   }
 
+  // ==========================================
+  // PROCEDURAL ENDLESS LEVEL GENERATOR
+  // Dynamic Infinite Combat Zones & Waves
+  // ==========================================
+  createProceduralStageZones(stageNum) {
+    const zones = [];
+    const totalZones = 20;
+    const weaponTypes = ['nunchaku', 'daggers', 'pipe', 'pistols'];
+
+    // Deterministic pseudo-random seed helper based on stageNum
+    let seed = stageNum * 7919;
+    const nextRand = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+
+    for (let i = 0; i < totalZones; i++) {
+      const zoneNum = i + 1;
+      const triggerX = 500 + i * 780;
+      const isMidBoss = (zoneNum === 10);
+      const isFinalBoss = (zoneNum === totalZones);
+      const enemies = [];
+      const breakables = [];
+      const reinforcements = [];
+
+      if (isFinalBoss) {
+        // Pinnacle Stage Boss
+        const bossArchetypes = ['kuroda', 'iron_fang', 'master_shen'];
+        const bType = bossArchetypes[(stageNum + i) % bossArchetypes.length];
+        const bossTitles = {
+          kuroda: `GRANDMASTER KURODA (LV.${stageNum})`,
+          iron_fang: `DEMONIC IRON FANG (LV.${stageNum})`,
+          master_shen: `SHADOW LORD SHEN (LV.${stageNum})`
+        };
+
+        enemies.push({
+          type: 'boss',
+          bossType: bType,
+          bossName: bossTitles[bType],
+          xOffset: 380,
+          y: 205,
+          isBoss: true
+        });
+
+        // Elite Minion Guards
+        enemies.push({ type: 'ninja', xOffset: -40, y: 175 });
+        enemies.push({ type: 'ronin', xOffset: 520, y: 245 });
+        enemies.push({ type: 'kicker', xOffset: 550, y: 190 });
+
+        // Late-battle reinforcements
+        reinforcements.push([
+          { type: 'assassin', xOffset: -40, y: 180 },
+          { type: 'bruiser', xOffset: 530, y: 235 }
+        ]);
+
+        // Stage-ending restorative supplies
+        breakables.push({ type: 'barrel', x: triggerX + 80, y: 180, drops: 'pizza' });
+        breakables.push({ type: 'crate', x: triggerX + 220, y: 240, drops: 'scroll' });
+      } else if (isMidBoss) {
+        // Mid-Stage Boss
+        const midType = (stageNum % 2 === 0) ? 'iron_fang' : 'master_shen';
+        enemies.push({
+          type: 'boss',
+          bossType: midType,
+          bossName: `PHANTOM ${midType.toUpperCase()} (STAGE ${stageNum})`,
+          xOffset: 400,
+          y: 200,
+          isBoss: true
+        });
+        enemies.push({ type: 'ronin', xOffset: -30, y: 180 });
+        enemies.push({ type: 'ninja', xOffset: 520, y: 230 });
+
+        breakables.push({ type: 'crate', x: triggerX + 150, y: 210, drops: 'pizza' });
+        breakables.push({ type: 'barrel', x: triggerX + 280, y: 190, drops: 'scroll' });
+      } else {
+        // Normal Tactical Wave
+        const baseCount = zoneNum < 6 ? 3 : (zoneNum < 14 ? 4 : 5);
+        const count = baseCount + (nextRand() > 0.5 ? 1 : 0);
+
+        for (let e = 0; e < count; e++) {
+          let chosenType;
+          const r = nextRand();
+          if (zoneNum < 5) {
+            chosenType = r < 0.5 ? 'thug' : (r < 0.8 ? 'ninja' : 'zombie');
+          } else if (zoneNum < 12) {
+            chosenType = r < 0.3 ? 'ninja' : (r < 0.55 ? 'ronin' : (r < 0.75 ? 'kicker' : (r < 0.9 ? 'bruiser' : 'zombie')));
+          } else {
+            chosenType = r < 0.25 ? 'ronin' : (r < 0.5 ? 'assassin' : (r < 0.75 ? 'club_giant' : (r < 0.9 ? 'kicker' : 'bruiser')));
+          }
+
+          const xOff = (e % 2 === 0) ? (500 + Math.round(nextRand() * 60)) : (-40 - Math.round(nextRand() * 40));
+          const yPos = 165 + Math.round(nextRand() * 85);
+
+          // Chance for weapon on thug / ronin / ninja
+          let wep = null;
+          if (nextRand() < 0.28) {
+            wep = weaponTypes[Math.floor(nextRand() * weaponTypes.length)];
+          }
+
+          enemies.push({ type: chosenType, xOffset: xOff, y: yPos, weapon: wep });
+        }
+
+        // Tactical Breakable Crate / Barrel
+        if (zoneNum % 2 === 1 || nextRand() < 0.6) {
+          const bType = nextRand() < 0.5 ? 'crate' : 'barrel';
+          const dropRoll = nextRand();
+          let drop = 'pizza';
+          if (dropRoll < 0.30) drop = 'pizza';
+          else if (dropRoll < 0.50) drop = 'scroll';
+          else if (dropRoll < 0.75) drop = weaponTypes[Math.floor(nextRand() * weaponTypes.length)];
+          else drop = 'pistols';
+
+          breakables.push({
+            type: bType,
+            x: triggerX + 120 + Math.round(nextRand() * 200),
+            y: 180 + Math.round(nextRand() * 60),
+            drops: drop
+          });
+        }
+
+        // High-level reinforcement wave for late zones
+        if (zoneNum >= 12 && nextRand() < 0.45) {
+          reinforcements.push([
+            { type: 'ninja', xOffset: -40, y: 175 },
+            { type: 'kicker', xOffset: 520, y: 235 }
+          ]);
+        }
+      }
+
+      zones.push({
+        triggerX,
+        lockAt: triggerX,
+        cleared: false,
+        isBossZone: isFinalBoss,
+        bossType: isFinalBoss ? enemies[0].bossType : (isMidBoss ? enemies[0].bossType : null),
+        enemies,
+        breakables,
+        reinforcements
+      });
+    }
+
+    return zones;
+  }
+
+  createProceduralVerticalStageZones(stageNum) {
+    const zones = [];
+    const totalFloors = 20;
+    const weaponTypes = ['nunchaku', 'daggers', 'pipe', 'pistols'];
+
+    let seed = stageNum * 6173 + 101;
+    const nextRand = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+
+    for (let i = 0; i < totalFloors; i++) {
+      const floorNum = i + 1;
+      const globalFloor = (stageNum - 1) * 20 + floorNum;
+      const isMidBoss = (floorNum === 10);
+      const isFinalBoss = (floorNum === totalFloors);
+      const enemies = [];
+      const breakables = [];
+      const reinforcements = [];
+
+      if (isFinalBoss) {
+        const bossArchetypes = ['kuroda', 'iron_fang', 'master_shen'];
+        const bType = bossArchetypes[(stageNum + i) % bossArchetypes.length];
+        enemies.push({
+          type: 'boss',
+          bossType: bType,
+          bossName: `TOWER EMPEROR ${bType.toUpperCase()} (FLOOR ${globalFloor})`,
+          xOffset: 240,
+          y: 195,
+          isBoss: true
+        });
+        enemies.push({ type: 'ninja', xOffset: 90, y: 180 });
+        enemies.push({ type: 'ninja', xOffset: 390, y: 230 });
+
+        reinforcements.push([
+          { type: 'assassin', xOffset: 80, y: 190 },
+          { type: 'ronin', xOffset: 400, y: 220 }
+        ]);
+        breakables.push({ type: 'crate', x: 240, y: 200, drops: 'pizza' });
+      } else if (isMidBoss) {
+        enemies.push({
+          type: 'boss',
+          bossType: 'iron_fang',
+          bossName: `FLOOR ${globalFloor} ONI GUARDIAN`,
+          xOffset: 240,
+          y: 200,
+          isBoss: true
+        });
+        enemies.push({ type: 'bruiser', xOffset: 90, y: 185 });
+        enemies.push({ type: 'kicker', xOffset: 390, y: 225 });
+        breakables.push({ type: 'barrel', x: 240, y: 200, drops: 'scroll' });
+      } else {
+        const count = floorNum < 6 ? 2 : (floorNum < 14 ? 3 : 4);
+        for (let e = 0; e < count; e++) {
+          const r = nextRand();
+          let chosenType;
+          if (floorNum < 6) chosenType = r < 0.6 ? 'thug' : 'ninja';
+          else if (floorNum < 14) chosenType = r < 0.4 ? 'ninja' : (r < 0.7 ? 'ronin' : 'kicker');
+          else chosenType = r < 0.35 ? 'assassin' : (r < 0.7 ? 'club_giant' : 'bruiser');
+
+          const xPos = 80 + Math.round(nextRand() * 320);
+          const yPos = 175 + Math.round(nextRand() * 65);
+          enemies.push({ type: chosenType, xOffset: xPos, y: yPos });
+        }
+
+        if (floorNum % 3 === 0) {
+          breakables.push({
+            type: nextRand() < 0.5 ? 'crate' : 'barrel',
+            x: 180 + Math.round(nextRand() * 120),
+            y: 190 + Math.round(nextRand() * 30),
+            drops: nextRand() < 0.4 ? 'pizza' : (nextRand() < 0.7 ? 'scroll' : weaponTypes[Math.floor(nextRand() * weaponTypes.length)])
+          });
+        }
+      }
+
+      zones.push({
+        floorNum,
+        cleared: false,
+        isBossZone: isFinalBoss,
+        bossType: isFinalBoss ? enemies[0].bossType : (isMidBoss ? enemies[0].bossType : null),
+        enemies,
+        breakables,
+        reinforcements
+      });
+    }
+
+    return zones;
+  }
+
   reset() {
     this.loadStage(1);
   }
@@ -1282,7 +1544,8 @@ class Stage {
           this.locked = false;
           if (window.soundEngine) window.soundEngine.playPickup();
           if (window.combatSystem) {
-            window.combatSystem.spawnComboText(240, 50, `FLOOR ${this.currentZoneIndex + 1}`, '#ffd700');
+            const currentFloor = (this.currentStageNum - 1) * 20 + this.currentZoneIndex + 1;
+            window.combatSystem.spawnComboText(240, 50, `FLOOR ${currentFloor}`, '#ffd700');
           }
         }
       } else {
@@ -1382,8 +1645,10 @@ class Stage {
 
     this.trainOffset += dt * 380; // Speeding train simulation in Stage 2
 
-    // Update Fire Embers in Stage 3
-    if (this.currentStageNum === 3) {
+    // Update Fire Embers in Stage 3 or Volcanic/Shrine procedural stages
+    const hasEmbers = (this.currentStageNum === 3) ||
+                      (this.currentStageNum > 3 && (this.currentStageNum % 8 === 3 || this.currentStageNum % 8 === 6));
+    if (hasEmbers) {
       if (Math.random() < 0.25) {
         this.emberParticles.push({
           x: Math.random() * 480,
@@ -1497,20 +1762,24 @@ class Stage {
   // DRAW PARALLAX BACKGROUND ACCORDING TO CURRENT STAGE
   drawBackground(ctx) {
     if (this.gameMode === 'VERTICAL') {
-      if (this.currentStageNum === 2) {
+      if (this.currentStageNum === 1 && this.gameMode !== 'ENDLESS') {
+        this.drawVerticalStage1Background(ctx, this.verticalScrollY);
+      } else if (this.currentStageNum === 2 && this.gameMode !== 'ENDLESS') {
         this.drawVerticalStage2Background(ctx, this.verticalScrollY);
-      } else if (this.currentStageNum === 3) {
+      } else if (this.currentStageNum === 3 && this.gameMode !== 'ENDLESS') {
         this.drawVerticalStage3Background(ctx, this.verticalScrollY);
       } else {
-        this.drawVerticalStage1Background(ctx, this.verticalScrollY);
+        this.drawProceduralVerticalBackground(ctx, this.verticalScrollY, this.currentStageNum);
       }
     } else {
-      if (this.currentStageNum === 2) {
+      if (this.currentStageNum === 1 && this.gameMode !== 'ENDLESS') {
+        this.drawStage1Background(ctx, this.cameraX);
+      } else if (this.currentStageNum === 2 && this.gameMode !== 'ENDLESS') {
         this.drawStage2Background(ctx, this.cameraX);
-      } else if (this.currentStageNum === 3) {
+      } else if (this.currentStageNum === 3 && this.gameMode !== 'ENDLESS') {
         this.drawStage3Background(ctx, this.cameraX);
       } else {
-        this.drawStage1Background(ctx, this.cameraX);
+        this.drawProceduralBackground(ctx, this.cameraX, this.currentStageNum);
       }
     }
   }
@@ -2061,6 +2330,279 @@ class Stage {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  // ==========================================
+  // PROCEDURAL STAGE NAMING & THEME MATRIX
+  // ==========================================
+  getProceduralStageName(stageNum) {
+    const prefixes = [
+      'SHADOW', 'NEON', 'CYBER', 'DRAGON', 'CRIMSON', 'IRON', 'MIDNIGHT',
+      'INFERNAL', 'GHOST', 'CHAOS', 'STORM', 'VIPER', 'BLOOD', 'TITAN',
+      'CELESTIAL', 'VOID', 'PHANTOM', 'RISING', 'BLACK LOTUS', 'SAVAGE'
+    ];
+    const locales = [
+      'ALLEYWAYS', 'PAGODA', 'ROOFTOPS', 'HIGHWAY', 'SANCTUM', 'DOCKS',
+      'CITADEL', 'FOUNDRY', 'TEMPLE', 'HARBOR', 'SUMMIT', 'UNDERWORLD',
+      'FORTRESS', 'SECTOR', 'BASTION', 'DOJO', 'SPIRE', 'PENTHOUSE'
+    ];
+    const subtitles = [
+      '~ THE ENDLESS INVASION ~',
+      '~ SYNDICATE VENGEANCE ~',
+      '~ THE GAUNTLET OF BLOOD ~',
+      '~ CLASH OF THE CLANS ~',
+      '~ RECKONING AT MIDNIGHT ~',
+      '~ DRAGON AWAKENING ~',
+      '~ HIGH-ALTITUDE WARFARE ~',
+      '~ ENTER THE ABYSS ~',
+      '~ THE FINAL ASCENT ~',
+      '~ KUNG FU MAYHEM ~'
+    ];
+
+    const pIdx = Math.abs((stageNum * 7 + 3) % prefixes.length);
+    const lIdx = Math.abs((stageNum * 13 + 5) % locales.length);
+    const sIdx = Math.abs((stageNum * 11 + 2) % subtitles.length);
+
+    return {
+      title: `${prefixes[pIdx]} ${locales[lIdx]}`,
+      subtitle: subtitles[sIdx]
+    };
+  }
+
+  getProceduralTheme(stageNum) {
+    const themes = [
+      {
+        id: 'CHINATOWN_NEON',
+        skyTop: '#0c0714', skyMid: '#1e0c2b', skyBottom: '#3b123d',
+        moonColor: '#ffeedd', moonX: 380, moonY: 45, moonRadius: 26,
+        ambientColor: 'rgba(255, 42, 109, 0.10)',
+        groundColor: '#120f1c', curbColor: '#ff2a6d',
+        decor: 'pagodas',
+        signs: ['武', '龍', '怒', '館', '道']
+      },
+      {
+        id: 'CYBER_ROOFTOPS',
+        skyTop: '#050b1a', skyMid: '#0a1d3b', skyBottom: '#183860',
+        moonColor: '#05d9e8', moonX: 120, moonY: 40, moonRadius: 22,
+        ambientColor: 'rgba(5, 217, 232, 0.10)',
+        groundColor: '#0e1424', curbColor: '#05d9e8',
+        decor: 'skyscrapers',
+        signs: ['CYBER', 'NEON', 'ROBOT', 'CHIP']
+      },
+      {
+        id: 'ANCIENT_SHRINE',
+        skyTop: '#140608', skyMid: '#280c10', skyBottom: '#421418',
+        moonColor: '#ffd700', moonX: 240, moonY: 35, moonRadius: 22,
+        ambientColor: 'rgba(255, 215, 0, 0.10)',
+        groundColor: '#180a0c', curbColor: '#ffd700',
+        decor: 'torii_pillars',
+        signs: ['神', '虎', '力', '炎']
+      },
+      {
+        id: 'HARBOR_DOCKS',
+        skyTop: '#030812', skyMid: '#081728', skyBottom: '#10283e',
+        moonColor: '#e0f4ff', moonX: 400, moonY: 38, moonRadius: 24,
+        ambientColor: 'rgba(0, 200, 255, 0.08)',
+        groundColor: '#101822', curbColor: '#00ddff',
+        decor: 'containers',
+        signs: ['CARGO', 'PORT', 'DOCK', 'SHIP']
+      },
+      {
+        id: 'TOXIC_UNDERWORLD',
+        skyTop: '#041009', skyMid: '#0a2415', skyBottom: '#143d23',
+        moonColor: '#55ff77', moonX: 200, moonY: 42, moonRadius: 20,
+        ambientColor: 'rgba(85, 255, 119, 0.10)',
+        groundColor: '#0b1610', curbColor: '#00ff66',
+        decor: 'pipes',
+        signs: ['BIO', 'HAZARD', 'TOXIC', 'MUTANT']
+      },
+      {
+        id: 'VOLCANIC_FORGE',
+        skyTop: '#160402', skyMid: '#300a05', skyBottom: '#551508',
+        moonColor: '#ff5522', moonX: 350, moonY: 40, moonRadius: 28,
+        ambientColor: 'rgba(255, 85, 34, 0.12)',
+        groundColor: '#1a0805', curbColor: '#ff4400',
+        decor: 'foundry',
+        signs: ['鍛', '鉄', '火', '灼']
+      },
+      {
+        id: 'BAMBOO_GROVE',
+        skyTop: '#060a14', skyMid: '#0d1828', skyBottom: '#1a2a40',
+        moonColor: '#ffffff', moonX: 320, moonY: 32, moonRadius: 25,
+        ambientColor: 'rgba(200, 225, 255, 0.08)',
+        groundColor: '#0a1016', curbColor: '#7be495',
+        decor: 'bamboo',
+        signs: ['竹', '月', '影', '林']
+      },
+      {
+        id: 'GOLDEN_SUMMIT',
+        skyTop: '#1a0a20', skyMid: '#351630', skyBottom: '#58253e',
+        moonColor: '#ffd700', moonX: 180, moonY: 36, moonRadius: 24,
+        ambientColor: 'rgba(255, 215, 0, 0.10)',
+        groundColor: '#1a1020', curbColor: '#ffd700',
+        decor: 'penthouse',
+        signs: ['天', '頂', '金', '極']
+      }
+    ];
+
+    const idx = Math.abs((stageNum - 1) % themes.length);
+    return themes[idx];
+  }
+
+  drawProceduralBackground(ctx, camX, stageNum) {
+    const theme = this.getProceduralTheme(stageNum);
+
+    // 1. Sky Gradient
+    const sky = ctx.createLinearGradient(0, 0, 0, 160);
+    sky.addColorStop(0, theme.skyTop);
+    sky.addColorStop(0.55, theme.skyMid);
+    sky.addColorStop(1, theme.skyBottom);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, 480, 160);
+
+    // 2. Celestial Body (Moon / Sun)
+    ctx.save();
+    ctx.fillStyle = theme.moonColor;
+    ctx.beginPath();
+    const moonShiftX = ((theme.moonX - camX * 0.02) % 520 + 520) % 520;
+    ctx.arc(moonShiftX, theme.moonY, theme.moonRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Soft celestial glow halo
+    ctx.fillStyle = theme.ambientColor;
+    ctx.beginPath();
+    ctx.arc(moonShiftX, theme.moonY, theme.moonRadius * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 3. Far Silhouette Skyline (Speed: camX * 0.15)
+    ctx.fillStyle = '#0b0614';
+    const farSpacing = 160;
+    const farShift = (camX * 0.15) % farSpacing;
+    for (let x = -farShift - farSpacing; x < 480 + farSpacing; x += farSpacing) {
+      if (theme.decor === 'skyscrapers' || theme.decor === 'penthouse') {
+        ctx.fillRect(x, 60, 65, 100);
+        ctx.fillRect(x + 75, 45, 55, 115);
+      } else if (theme.decor === 'bamboo') {
+        ctx.fillRect(x + 20, 30, 8, 130);
+        ctx.fillRect(x + 60, 20, 10, 140);
+        ctx.fillRect(x + 110, 40, 7, 120);
+      } else if (theme.decor === 'containers') {
+        ctx.fillRect(x, 80, 110, 80);
+        ctx.fillRect(x + 20, 50, 70, 30);
+      } else {
+        ctx.fillRect(x, 70, 110, 90);
+        ctx.beginPath();
+        ctx.moveTo(x - 10, 70);
+        ctx.lineTo(x + 55, 45);
+        ctx.lineTo(x + 120, 70);
+        ctx.fill();
+      }
+    }
+
+    // 4. Midground Structures & Neon Signs (Speed: camX * 0.5)
+    const midSpacing = 220;
+    const midShift = (camX * 0.5) % midSpacing;
+    for (let x = -midShift - midSpacing; x < 480 + midSpacing; x += midSpacing) {
+      ctx.fillStyle = '#140d1f';
+      ctx.fillRect(x, 90, 80, 70);
+
+      const signIndex = Math.abs(Math.floor((x + camX * 0.5) / midSpacing)) % theme.signs.length;
+      const signText = theme.signs[signIndex];
+
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(x + 20, 100, 40, 45);
+      ctx.strokeStyle = theme.curbColor;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 20, 100, 40, 45);
+
+      ctx.fillStyle = theme.curbColor;
+      ctx.font = '10px "Press Start 2P"';
+      ctx.textAlign = 'center';
+      ctx.fillText(signText, x + 40, 128);
+    }
+
+    // 5. Ground Walking Lane (y: 152 to 264)
+    ctx.fillStyle = theme.groundColor;
+    ctx.fillRect(0, 152, 480, 118);
+
+    // Glowing Top Curb Line
+    ctx.strokeStyle = theme.curbColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 152);
+    ctx.lineTo(480, 152);
+    ctx.stroke();
+
+    // Perspective Road Grid lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let py = 168; py < 264; py += 16) {
+      ctx.beginPath();
+      ctx.moveTo(0, py);
+      ctx.lineTo(480, py);
+      ctx.stroke();
+    }
+
+    // Bottom Curb line
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(0, 264);
+    ctx.lineTo(480, 264);
+    ctx.stroke();
+  }
+
+  drawProceduralVerticalBackground(ctx, scrollY, stageNum) {
+    const theme = this.getProceduralTheme(stageNum);
+
+    // Sky gradient
+    const sky = ctx.createLinearGradient(0, 0, 0, 270);
+    sky.addColorStop(0, theme.skyTop);
+    sky.addColorStop(0.6, theme.skyMid);
+    sky.addColorStop(1, theme.skyBottom);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, 480, 270);
+
+    // Elevator Shaft Columns (left & right borders)
+    ctx.fillStyle = '#110b1a';
+    ctx.fillRect(0, 0, 60, 270);
+    ctx.fillRect(420, 0, 60, 270);
+
+    ctx.strokeStyle = theme.curbColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(60, 0); ctx.lineTo(60, 270);
+    ctx.moveTo(420, 0); ctx.lineTo(420, 270);
+    ctx.stroke();
+
+    // Elevator Cables
+    ctx.strokeStyle = '#33254c';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(75, 0); ctx.lineTo(75, 270);
+    ctx.moveTo(405, 0); ctx.lineTo(405, 270);
+    ctx.stroke();
+
+    // Ascending Floor Indicators passing by
+    const floorH = 90;
+    const shiftY = (scrollY * 0.8) % floorH;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    for (let y = -shiftY - floorH; y < 270 + floorH; y += floorH) {
+      ctx.fillRect(60, y, 360, 3);
+    }
+
+    // Walking Platform (y: 160 to 255)
+    ctx.fillStyle = theme.groundColor;
+    ctx.fillRect(60, 160, 360, 95);
+    ctx.strokeStyle = theme.curbColor;
+    ctx.strokeRect(60, 160, 360, 95);
+
+    // Altitude & Floor Readout on shaft
+    ctx.fillStyle = theme.curbColor;
+    ctx.font = '6px "Press Start 2P"';
+    ctx.textAlign = 'left';
+    ctx.fillText(`LV.${stageNum}`, 8, 30);
+    ctx.fillText(`${Math.round(this.altitude)}M`, 8, 45);
   }
 
   // Draw the iconic retro arcade "GO --->" indicator (steady display without harsh blinking)

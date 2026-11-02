@@ -37,7 +37,7 @@ An old-school retro beat 'em up arcade / NES side-scroller paying tribute to **K
 | **Aerial Cyclone Kick** | Moving Jump + <kbd>K</kbd> | Mid-air spinning hurricane Tatsumaki kick hitting foes on both sides |
 | **DRAGON KNUCKLE (Mega Punch)** | <kbd>H</kbd> / <kbd>U</kbd>, **Hold <kbd>J</kbd>**, or **Dash + <kbd>J</kbd>** | **The Captain Falcon Homage!** Charging windup with super armor (*"DRAAAAGOON..."*) ➔ Explosive rocket thrust engulfing fist in a giant flaming dragon head (*"...KNUCKLE!!!!"*), 65 massive damage & screen-clearing launch |
 | **Chinatown Armory (Store)** | <kbd>B</kbd> or click **[B] STORE** | Open Black Market Armory to purchase weapons, pizza heals, and Dragon Ki scrolls using your score |
-| **Game Mode Toggle** | <kbd>M</kbd> or click **[M] MODE** | Switch between Horizontal Belt-Scroll Marathon and Vertical Pagoda Ascent modes |
+| **Game Mode Toggle** | <kbd>M</kbd> or click **[M] MODE** | Switch between Horizontal Belt-Scroll Marathon, Vertical Pagoda Ascent, and Endless Level Generator modes |
 | **Instruction Manual** | <kbd>N</kbd> or click **[MANUAL]** | Open interactive 11-chapter retro arcade instruction booklet |
 | **Front Flip** | <kbd>Dash</kbd> + <kbd>Space</kbd> or Forward + <kbd>Space</kbd> | Airborne somersault axe kick leap over enemies with golden speed trail |
 | **Evasive Backflip** | Backward + <kbd>Space</kbd> | Defensive reverse somersault with invulnerability frames and cyan evasion arc |
@@ -291,3 +291,11 @@ Customize your experience via the new in-game & title **Settings Menu** (Press <
     - Real-time synthesized retro SFX for punches, kicks, knockdowns, swooshes, item chimes, gunshot cracks, shell pings, cash registers, and Ki bursts without external sound files.
 15. **Arcade CRT Filter**:
     - Toggleable CRT scanlines, phosphor glow, and curved arcade monitor vignette.
+16. **Automatic Endless Level Generator & Infinite Rage Mode**:
+    - **Endless Level Progression**: After conquering the 3 main story stages, the game automatically transitions into procedural endless mode (`Stage 4, 5, 6, ... ∞`).
+    - **Instant Endless Mode**: Choose `ENDLESS GENERATOR` mode directly via <kbd>M</kbd> on Character Select or in Settings to start in procedural stages from the very first level.
+    - **8 Dynamic Procedural Environments**:
+      - *Neon Chinatown District*, *Cyber Skyline & Rooftops*, *Underground Dragon Shrine*, *Midnight Syndicate Harbor*, *Toxic Bio-Lab Underbelly*, *Infernal Volcanic Foundry*, *Moonlit Bamboo Sanctuary*, and *Heavens Peak Penthouse*.
+    - **Procedural Stage Naming Matrix**: Evocative dynamic titles and subtitles (e.g. *Viper Highway ~ High-Altitude Warfare ~*, *Titan Harbor ~ The Gauntlet of Blood ~*).
+    - **Algorithmic Wave & Boss Generation**: 20 zones per stage with scaling enemy compositions, weapon-wielding goons, mid-stage bosses, and Pinnacle Stage Bosses (e.g. *Grandmaster Kuroda Lv.4*, *Demonic Iron Fang*, *Shadow Lord Shen*) with scaled health and high-score multipliers.
+    - **Both Horizontal & Vertical Supported**: Infinite street marathons or infinite ascending pagoda tower floors with live sector and altitude tracking.

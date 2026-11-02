@@ -160,7 +160,13 @@ Press <kbd>B</kbd> or click **[B] STORE** on the HUD at any time during gameplay
   - *Vertical Stage 1*: **DRAGON PAGODA - 100 FLOORS** (Lacquered balconies, swaying paper lanterns, mountain peaks).
   - *Vertical Stage 2*: **CYBER SKY ELEVATOR** (High-speed exterior skyscraper cage lift, glowing neon corporate kanji, passing hovercars).
   - *Vertical Stage 3*: **HEAVEN'S PEAK CRANE SUMMIT** (Extreme altitude crane girders above boiling storm clouds with lightning).
-* **Toggle**: Press <kbd>M</kbd> on the Character Select screen or click the Mode Toggle button!
+
+### ⚡ Mode 3: ENDLESS LEVEL GENERATOR (Infinite Procedural Rage)
+* **Infinite Algorithmic Stages**: Stages 1 through ∞ are dynamically generated in real-time.
+* **Automatic Campaign Transition**: Beating Stage 3 Grandmaster Kuroda automatically progresses into Stage 4 and beyond without ending the game!
+* **8 Procedural Biomes**: Rotating environments including *Neon Chinatown*, *Cyber Skyline*, *Dragon Shrine*, *Syndicate Harbor*, *Toxic Bio-Lab*, *Volcanic Forge*, *Bamboo Sanctuary*, and *Golden Summit*.
+* **Procedural Bosses & Scaling**: 20 zones per stage with scaling health, score multipliers, weapon-wielding goons, and empowered Pinnacle Bosses (e.g. *Grandmaster Kuroda Lv.5*, *Demonic Iron Fang*, *Shadow Lord Shen*).
+* **Toggle**: Press <kbd>M</kbd> on Character Select or select in Settings!
 
 ---
 

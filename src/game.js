@@ -96,7 +96,13 @@ class Game {
   }
 
   toggleGameMode() {
-    this.gameMode = (this.gameMode === 'HORIZONTAL') ? 'VERTICAL' : 'HORIZONTAL';
+    if (this.gameMode === 'HORIZONTAL') {
+      this.gameMode = 'VERTICAL';
+    } else if (this.gameMode === 'VERTICAL') {
+      this.gameMode = 'ENDLESS';
+    } else {
+      this.gameMode = 'HORIZONTAL';
+    }
     localStorage.setItem('kungfu_gamemode', this.gameMode);
     if (this.stage) {
       this.stage.setGameMode(this.gameMode);
@@ -593,6 +599,13 @@ class Game {
             this.enemies.push(new Enemy(320, 185, 'ninja'));
             this.enemies.push(new Enemy(400, 230, 'bruiser'));
             this.breakables.push(new Breakable(220, 205, 'barrel', 'scroll'));
+          } else {
+            const types = ['ninja', 'ronin', 'kicker', 'assassin'];
+            const e1 = types[nextStage % types.length];
+            const e2 = types[(nextStage + 1) % types.length];
+            this.enemies.push(new Enemy(320, 185, e1));
+            this.enemies.push(new Enemy(410, 225, e2));
+            this.breakables.push(new Breakable(220, 205, 'crate', (nextStage % 2 === 0 ? 'pizza' : 'scroll')));
           }
         }
 
@@ -637,6 +650,8 @@ class Game {
         this.breakables.push(new Breakable(item.x, item.y, item.type, item.drops));
       } else {
         const enemy = new Enemy(item.x, item.y, item.type, item.bossType);
+        if (item.bossName) enemy.bossName = item.bossName;
+        if (item.weapon) enemy.weapon = { type: item.weapon, hits: 25 };
         if (enemy.isBoss) {
           enemy.laughTimer = 1.8;
           window.combatSystem.spawnComboText(enemy.x, enemy.y - 50, 'MWAHAHAHA!', '#ff0055');
@@ -1310,52 +1325,75 @@ class Game {
   }
 
   triggerStageClear() {
-    if (this.stageTransition || this.gameState === 'VICTORY') return;
+    if (this.stageTransition) return;
 
-    if (this.stage.currentStageNum < 3) {
-      // Stage Transition to next stage!
-      this.stageTransition = {
-        fromStage: this.stage.currentStageNum,
-        toStage: this.stage.currentStageNum + 1,
-        timer: 3.5
-      };
-      window.soundEngine.playStageClear();
-      window.combatSystem.triggerScreenShake(7, 0.4);
-    } else {
-      // Stage 3 Grandmaster Kuroda defeated -> Ultimate Victory!
-      this.gameState = 'VICTORY';
-      this.victoryTimer = 0;
+    // Award Stage Clear Bonus: +10,000 pts per stage level
+    const stageBonus = this.stage.currentStageNum * 10000;
+    this.player.score += stageBonus;
+    if (this.player.score > this.highScore) {
+      this.highScore = this.player.score;
+      localStorage.setItem('kungfu_high_score', this.highScore.toString());
+    }
+
+    const nextStage = this.stage.currentStageNum + 1;
+    this.stageTransition = {
+      fromStage: this.stage.currentStageNum,
+      toStage: nextStage,
+      bonus: stageBonus,
+      timer: 3.8
+    };
+
+    window.soundEngine.playStageClear();
+    window.combatSystem.triggerScreenShake(7, 0.4);
+
+    if (window.gameLogger) {
+      window.gameLogger.log('STAGE', `Stage ${this.stage.currentStageNum} Cleared! Bonus: +${stageBonus} pts. Proceeding to Stage ${nextStage}...`);
+    }
+
+    // Celebratory victory anthem when completing Stage 3 story campaign before entering endless mode
+    if (this.stage.currentStageNum === 3 && this.gameMode !== 'ENDLESS') {
       window.soundEngine.startBGM('victory');
-      window.soundEngine.playStageClear();
-      if (this.player.score > this.highScore) {
-        this.highScore = this.player.score;
-        localStorage.setItem('kungfu_high_score', this.highScore.toString());
-      }
-
-      if (window.gameLogger) {
-        window.gameLogger.saveSession('VICTORY', this.player.score);
-      }
     }
   }
 
   renderStageClearOverlay(ctx) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
     ctx.fillRect(0, 0, 480, 270);
 
     ctx.save();
     ctx.textAlign = 'center';
 
-    ctx.fillStyle = '#ffd700';
-    ctx.font = '20px "Press Start 2P"';
-    ctx.fillText(`STAGE ${this.stageTransition.fromStage} CLEARED!`, 240, 105);
+    const fromStage = this.stageTransition.fromStage;
+    const toStage = this.stageTransition.toStage;
+    const nextName = this.stage.getStageName(toStage);
+
+    if (fromStage === 3 && this.gameMode !== 'ENDLESS') {
+      ctx.fillStyle = '#00ffcc';
+      ctx.font = '10px "Press Start 2P"';
+      ctx.fillText('CAMPAIGN CONQUERED!', 240, 65);
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '16px "Press Start 2P"';
+      ctx.fillText('ENTER THE ENDLESS RAGE!', 240, 92);
+    } else {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '18px "Press Start 2P"';
+      ctx.fillText(`STAGE ${fromStage} CLEARED!`, 240, 85);
+    }
+
+    ctx.fillStyle = '#ff2a6d';
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillText(`STAGE CLEAR BONUS: +${this.stageTransition.bonus || (fromStage * 10000)} PTS!`, 240, 115);
 
     ctx.fillStyle = '#05d9e8';
-    ctx.font = '10px "Press Start 2P"';
-    ctx.fillText(`PREPARE FOR STAGE ${this.stageTransition.toStage}!`, 240, 135);
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillText(`NEXT: STAGE ${toStage}`, 240, 140);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '6px "Press Start 2P"';
+    ctx.fillText(nextName, 240, 154);
 
     ctx.fillStyle = '#00ff66';
-    ctx.font = '8px "Press Start 2P"';
-    ctx.fillText('+45 HP RECOVERY BONUS!', 240, 165);
+    ctx.font = '7px "Press Start 2P"';
+    ctx.fillText('+45 HP RECOVERY BONUS!', 240, 180);
 
     ctx.restore();
   }
@@ -1416,16 +1454,28 @@ class Game {
 
     // Game Mode & Manual Buttons Row
     const isVert = (this.gameMode === 'VERTICAL');
-    const modeLabel = isVert ? '▲ MODE: PAGODA ASCENT (VERT) ▲' : '▶ MODE: STREET BRAWL (HORIZ) ▶';
+    const isEndless = (this.gameMode === 'ENDLESS');
+    let modeLabel = '▶ MODE: STREET BRAWL (HORIZ) ▶';
+    let modeBorder = '#ffd700';
+    let modeBg = '#141d33';
+    if (isVert) {
+      modeLabel = '▲ MODE: PAGODA ASCENT (VERT) ▲';
+      modeBorder = '#00ffcc';
+      modeBg = '#2b1238';
+    } else if (isEndless) {
+      modeLabel = '⚡ MODE: ENDLESS GENERATOR (INFINITE) ⚡';
+      modeBorder = '#ff2a6d';
+      modeBg = '#2d0a1e';
+    }
 
     // Mode Button (x: 35 to 325)
-    ctx.fillStyle = isVert ? '#2b1238' : '#141d33';
+    ctx.fillStyle = modeBg;
     ctx.fillRect(35, 227, 290, 14);
-    ctx.strokeStyle = isVert ? '#00ffcc' : '#ffd700';
+    ctx.strokeStyle = modeBorder;
     ctx.lineWidth = 1;
     ctx.strokeRect(35, 227, 290, 14);
     ctx.font = '5px "Press Start 2P"';
-    ctx.fillStyle = isVert ? '#00ffcc' : '#ffd700';
+    ctx.fillStyle = modeBorder;
     ctx.fillText(`[M] ${modeLabel}`, 180, 237);
 
     // Manual Button (x: 335 to 445)

@@ -1646,6 +1646,19 @@ class Enemy extends Fighter {
       }
     }
 
+    // Automatic Level Scaling for Procedural / Endless Stages
+    const currentStageNum = (typeof window !== 'undefined' && window.game && window.game.stage && window.game.stage.currentStageNum)
+      ? window.game.stage.currentStageNum
+      : 1;
+
+    if (currentStageNum > 1) {
+      // Gentle level scaling: +8% HP per stage level (capped at 2.5x), +12% score reward
+      const scaleMult = Math.min(2.5, 1 + (currentStageNum - 1) * 0.08);
+      this.health = Math.round(this.health * scaleMult);
+      this.maxHealth = this.health;
+      this.scoreValue = Math.round(this.scoreValue * (1 + (currentStageNum - 1) * 0.12));
+    }
+
     // Random enemies spawn wielding weapons! (32% chance)
     if (!this.isBoss && Math.random() < 0.32) {
       if (this.type === 'ninja' || this.type === 'assassin') {
