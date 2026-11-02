@@ -17,6 +17,7 @@
 9. [2P Co-Op AI Companion System](#9-2p-co-op-ai-companion-system)
 10. [Enemy Bestiary & Boss Strategies](#10-enemy-bestiary--boss-strategies)
 11. [Dynamic Speed Scaling, Secrets & Pro Tips](#11-dynamic-speed-scaling-secrets--pro-tips)
+12. [Interactive Obstacles & Hazard Mayhem](#12-interactive-obstacles--hazard-mayhem)
 
 ---
 
@@ -224,3 +225,16 @@ $$\text{Speed Multiplier} = 1.0 + \left(\frac{\text{Score}}{100}\right) \times 0
 2. **Armed Regular Enemies**: Regular enemies have a ~32% chance to spawn wielding weapons and guarantee a **100% weapon drop** upon defeat.
 3. **CRT Scanlines**: Toggle CRT scanlines and curved phosphor glow via the footer button.
 4. **8-Bit Soundtrack Jukebox**: Preview and jam out to authentic overdriven 8-bit rock tracks in the Settings menu!
+
+---
+
+## 12. Interactive Obstacles & Hazard Mayhem
+
+Toggle between **MAX MAYHEM**, **NORMAL**, and **OFF** in Settings (<kbd>O</kbd>) or with hotkey <kbd>H</kbd> in Character Select!
+
+* 🧨 **Explosive TNT Barrels**: Smashed with attacks or triggered by kicking an enemy into them. Detonates in a huge fireball dealing **45+ AoE blast damage**, triggering violent camera shake, launching enemies into orbit, and chain-detonating adjacent obstacles!
+* ⚡ **High-Voltage Electric Pylons**: Industrial generators with Tesla coils that pulse with cyan electric arcs. Shocks enemies within proximity for **16 electrical damage** with knockdown and, upon destruction, emits an EMP shockwave dealing **25 damage** to all nearby hostiles!
+* 🧪 **Toxic Acid Drums & Ooze Puddles**: Corrosive barrels that rupture upon impact, spilling a bubbling radioactive green acid pool for 7 seconds. Sizzles and melts enemies stepping into the toxic sludge!
+* 🗡️ **Retractable Floor Spike Traps**: Recessed mechanical floor grates that cycle between Retracted, Warning Click, and Thrust Spikes. Impales any enemy (or unwary hero) stepping on them for **22 impale damage** and launches them vertically for easy air-juggle combos!
+* 🚰 **Smashable Fire Hydrants**: Cast-iron city hydrants that rupture into a vertical **120-pixel water geyser**. Catches enemies and juggles them continuously in mid-air so you can execute aerial martial arts combos!
+* 💥 **Environmental Knockdown Collisions**: Any enemy kicked, punched, or launched into an obstacle inflicts **12 bounce collision damage** and breaks the obstacle immediately—kick bruisers into explosive TNT barrels for devastating crowd clears!

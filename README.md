@@ -39,6 +39,7 @@ An old-school retro beat 'em up arcade / NES side-scroller paying tribute to **K
 | **Chinatown Armory (Store)** | <kbd>B</kbd> or click **[B] STORE** | Open Black Market Armory to purchase weapons, pizza heals, and Dragon Ki scrolls using your score |
 | **Game Mode Toggle** | <kbd>M</kbd> or click **[M] MODE** | Switch between Horizontal Belt-Scroll Marathon, Vertical Pagoda Ascent, and Endless Level Generator modes |
 | **Instruction Manual** | <kbd>N</kbd> or click **[MANUAL]** | Open interactive 11-chapter retro arcade instruction booklet |
+| **Obstacle Mayhem Toggle** | <kbd>H</kbd> (in Select/Pause) or Settings | Toggle between **MAX MAYHEM**, **NORMAL**, and **OFF** for explosive barrels, pylons, hydrants & spike traps |
 | **Front Flip** | <kbd>Dash</kbd> + <kbd>Space</kbd> or Forward + <kbd>Space</kbd> | Airborne somersault axe kick leap over enemies with golden speed trail |
 | **Evasive Backflip** | Backward + <kbd>Space</kbd> | Defensive reverse somersault with invulnerability frames and cyan evasion arc |
 | **Dragon Special Move** | <kbd>L</kbd> or <kbd>V</kbd> | 360° Flaming Whirlwind / Ki blast (uses Ki meter) |
@@ -286,12 +287,20 @@ Customize your experience via the new in-game & title **Settings Menu** (Press <
     - Crunchy Capcom/Arcade-style freeze frames on impacts, screen shake on knockdowns, and comic hit-spark bursts.
 13. **Breakable Crates & Barrels with Pickups**:
     - Smash crates and oil barrels to reveal **TMNT-style Pizza slices** (restores health), **Ancient Dragon Scrolls** (maxes out your Special Ki), and **Weapons** (Pistols, Nunchaku, Daggers, Lead Pipe).
-14. **Real-time Web Audio Synthesizer**:
+14. **Interactive Obstacles & Hazard Mayhem (TNT Barrels, Electric Pylons, Acid Drums, Spike Traps, Fire Hydrants)**:
+    - **Obstacle Mayhem Toggle**: Select between **MAX MAYHEM**, **NORMAL**, and **OFF** in Settings (<kbd>O</kbd>) or with hotkey <kbd>H</kbd> in Character Select.
+    - **Explosive TNT Barrels**: Smashed with attacks or triggered by kicking an enemy into them. Detonates in a huge fireball dealing **45+ AoE blast damage**, violent camera shake, launching enemies into orbit, and chain-detonating adjacent obstacles!
+    - **High-Voltage Electric Pylons**: Industrial generators with Tesla coils pulsing with cyan electric arcs. Shocks enemies within proximity for **16 electrical damage** with knockdown, and releases a **25 damage EMP overload wave** upon destruction!
+    - **Toxic Acid Drums & Ooze Puddles**: Corrosive barrels that rupture upon impact, spilling a bubbling radioactive green acid puddle that sizzles and melts enemies for 7 seconds.
+    - **Retractable Floor Spike Traps**: Recessed mechanical floor grates cycling between Retracted, Warning Click, and Thrust Spikes. Impales any entity stepping on them for **22 damage** and launches them vertically for air combos!
+    - **Smashable Fire Hydrants**: Cast-iron city hydrants that burst into a vertical **120-pixel water geyser**, juggling enemies continuously in mid-air for extended aerial beatdowns!
+    - **Environmental Knockdown Collisions**: Kick or launch enemies across the screen into obstacles for **12 bounce collision damage** and instant chain reactions!
+15. **Real-time Web Audio Synthesizer**:
     - Dynamic 8-bit / 16-bit chiptune background music (driving stage groove and tense boss battle theme).
     - Real-time synthesized retro SFX for punches, kicks, knockdowns, swooshes, item chimes, gunshot cracks, shell pings, cash registers, and Ki bursts without external sound files.
-15. **Arcade CRT Filter**:
+16. **Arcade CRT Filter**:
     - Toggleable CRT scanlines, phosphor glow, and curved arcade monitor vignette.
-16. **Automatic Endless Level Generator & Infinite Rage Mode**:
+17. **Automatic Endless Level Generator & Infinite Rage Mode**:
     - **Endless Level Progression**: After conquering the 3 main story stages, the game automatically transitions into procedural endless mode (`Stage 4, 5, 6, ... ∞`).
     - **Instant Endless Mode**: Choose `ENDLESS GENERATOR` mode directly via <kbd>M</kbd> on Character Select or in Settings to start in procedural stages from the very first level.
     - **8 Dynamic Procedural Environments**:

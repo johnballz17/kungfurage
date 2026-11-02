@@ -1335,6 +1335,16 @@ class Stage {
         // Stage-ending restorative supplies
         breakables.push({ type: 'barrel', x: triggerX + 80, y: 180, drops: 'pizza' });
         breakables.push({ type: 'crate', x: triggerX + 220, y: 240, drops: 'scroll' });
+
+        const mayhemSetting = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || (window.game ? window.game.obstacleMayhem : 'max') || 'max';
+        if (mayhemSetting !== 'off') {
+          breakables.push({ type: 'tnt', x: triggerX + 110, y: 175, drops: 'scroll' });
+          breakables.push({ type: 'tnt', x: triggerX + 350, y: 235, drops: 'scroll' });
+          breakables.push({ type: 'hydrant', x: triggerX + 280, y: 195, drops: 'pizza' });
+          if (mayhemSetting === 'max') {
+            breakables.push({ type: 'spike_trap', x: triggerX + 190, y: 215 });
+          }
+        }
       } else if (isMidBoss) {
         // Mid-Stage Boss
         const midType = (stageNum % 2 === 0) ? 'iron_fang' : 'master_shen';
@@ -1351,6 +1361,15 @@ class Stage {
 
         breakables.push({ type: 'crate', x: triggerX + 150, y: 210, drops: 'pizza' });
         breakables.push({ type: 'barrel', x: triggerX + 280, y: 190, drops: 'scroll' });
+
+        const mayhemSetting = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || (window.game ? window.game.obstacleMayhem : 'max') || 'max';
+        if (mayhemSetting !== 'off') {
+          breakables.push({ type: 'tnt', x: triggerX + 210, y: 225, drops: 'scroll' });
+          breakables.push({ type: 'electric_pylon', x: triggerX + 90, y: 180, drops: 'nunchaku' });
+          if (mayhemSetting === 'max') {
+            breakables.push({ type: 'hydrant', x: triggerX + 330, y: 200, drops: 'pizza' });
+          }
+        }
       } else {
         // Normal Tactical Wave
         const baseCount = zoneNum < 6 ? 3 : (zoneNum < 14 ? 4 : 5);
@@ -1379,8 +1398,20 @@ class Stage {
           enemies.push({ type: chosenType, xOffset: xOff, y: yPos, weapon: wep });
         }
 
-        // Tactical Breakable Crate / Barrel
-        if (zoneNum % 2 === 1 || nextRand() < 0.6) {
+        const mayhemSetting = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || (window.game ? window.game.obstacleMayhem : 'max') || 'max';
+
+        if (mayhemSetting === 'off') {
+          // Minimal classic breakables
+          if (zoneNum % 2 === 1 || nextRand() < 0.5) {
+            breakables.push({
+              type: nextRand() < 0.5 ? 'crate' : 'barrel',
+              x: triggerX + 120 + Math.round(nextRand() * 200),
+              y: 180 + Math.round(nextRand() * 60),
+              drops: nextRand() < 0.5 ? 'pizza' : 'scroll'
+            });
+          }
+        } else {
+          // Supply Breakable Crate / Barrel
           const bType = nextRand() < 0.5 ? 'crate' : 'barrel';
           const dropRoll = nextRand();
           let drop = 'pizza';
@@ -1391,10 +1422,38 @@ class Stage {
 
           breakables.push({
             type: bType,
-            x: triggerX + 120 + Math.round(nextRand() * 200),
-            y: 180 + Math.round(nextRand() * 60),
+            x: triggerX + 110 + Math.round(nextRand() * 90),
+            y: 175 + Math.round(nextRand() * 65),
             drops: drop
           });
+
+          // INTERACTIVE OBSTACLES & HAZARDS (TNT, Electric Pylons, Acid Drums, Spike Traps, Fire Hydrants)
+          const hazardCount = (mayhemSetting === 'max') ? (2 + Math.floor(nextRand() * 3)) : 1;
+          const hazardPool = ['tnt', 'electric_pylon', 'acid_drum', 'spike_trap', 'hydrant'];
+          const usedPositions = [];
+
+          for (let h = 0; h < hazardCount; h++) {
+            const hType = hazardPool[(zoneNum + h * 2 + Math.floor(nextRand() * hazardPool.length)) % hazardPool.length];
+            const hx = triggerX + 70 + Math.round(nextRand() * 310);
+            const hy = 170 + Math.round(nextRand() * 75);
+
+            const tooClose = usedPositions.some(p => Math.abs(p.x - hx) < 38 && Math.abs(p.y - hy) < 18);
+            if (!tooClose) {
+              usedPositions.push({ x: hx, y: hy });
+              let hDrop = 'pizza';
+              if (hType === 'tnt') hDrop = nextRand() < 0.5 ? 'scroll' : 'pistols';
+              else if (hType === 'hydrant') hDrop = 'pizza';
+              else if (hType === 'acid_drum') hDrop = weaponTypes[Math.floor(nextRand() * weaponTypes.length)];
+              else if (hType === 'electric_pylon') hDrop = 'nunchaku';
+
+              breakables.push({
+                type: hType,
+                x: hx,
+                y: hy,
+                drops: hDrop
+              });
+            }
+          }
         }
 
         // High-level reinforcement wave for late zones
@@ -1460,6 +1519,15 @@ class Stage {
           { type: 'ronin', xOffset: 400, y: 220 }
         ]);
         breakables.push({ type: 'crate', x: 240, y: 200, drops: 'pizza' });
+
+        const mayhemSetting = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || (window.game ? window.game.obstacleMayhem : 'max') || 'max';
+        if (mayhemSetting !== 'off') {
+          breakables.push({ type: 'tnt', x: 130, y: 190, drops: 'scroll' });
+          breakables.push({ type: 'hydrant', x: 350, y: 205, drops: 'pizza' });
+          if (mayhemSetting === 'max') {
+            breakables.push({ type: 'spike_trap', x: 240, y: 225 });
+          }
+        }
       } else if (isMidBoss) {
         enemies.push({
           type: 'boss',
@@ -1472,6 +1540,14 @@ class Stage {
         enemies.push({ type: 'bruiser', xOffset: 90, y: 185 });
         enemies.push({ type: 'kicker', xOffset: 390, y: 225 });
         breakables.push({ type: 'barrel', x: 240, y: 200, drops: 'scroll' });
+
+        const mayhemSetting = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || (window.game ? window.game.obstacleMayhem : 'max') || 'max';
+        if (mayhemSetting !== 'off') {
+          breakables.push({ type: 'electric_pylon', x: 130, y: 190, drops: 'nunchaku' });
+          if (mayhemSetting === 'max') {
+            breakables.push({ type: 'tnt', x: 350, y: 205, drops: 'pizza' });
+          }
+        }
       } else {
         const count = floorNum < 6 ? 2 : (floorNum < 14 ? 3 : 4);
         for (let e = 0; e < count; e++) {
@@ -1486,13 +1562,41 @@ class Stage {
           enemies.push({ type: chosenType, xOffset: xPos, y: yPos });
         }
 
-        if (floorNum % 3 === 0) {
-          breakables.push({
-            type: nextRand() < 0.5 ? 'crate' : 'barrel',
-            x: 180 + Math.round(nextRand() * 120),
-            y: 190 + Math.round(nextRand() * 30),
-            drops: nextRand() < 0.4 ? 'pizza' : (nextRand() < 0.7 ? 'scroll' : weaponTypes[Math.floor(nextRand() * weaponTypes.length)])
-          });
+        const mayhemSetting = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || (window.game ? window.game.obstacleMayhem : 'max') || 'max';
+
+        if (mayhemSetting === 'off') {
+          if (floorNum % 3 === 0) {
+            breakables.push({
+              type: nextRand() < 0.5 ? 'crate' : 'barrel',
+              x: 180 + Math.round(nextRand() * 120),
+              y: 190 + Math.round(nextRand() * 30),
+              drops: nextRand() < 0.4 ? 'pizza' : (nextRand() < 0.7 ? 'scroll' : weaponTypes[Math.floor(nextRand() * weaponTypes.length)])
+            });
+          }
+        } else {
+          // Supply crate
+          if (floorNum % 2 === 0 || mayhemSetting === 'max') {
+            breakables.push({
+              type: nextRand() < 0.5 ? 'crate' : 'barrel',
+              x: 150 + Math.round(nextRand() * 80),
+              y: 190 + Math.round(nextRand() * 30),
+              drops: nextRand() < 0.4 ? 'pizza' : (nextRand() < 0.7 ? 'scroll' : weaponTypes[Math.floor(nextRand() * weaponTypes.length)])
+            });
+          }
+
+          // Tactical Floor Hazard
+          if (mayhemSetting === 'max' || floorNum % 2 === 1) {
+            const hazardPool = ['spike_trap', 'tnt', 'electric_pylon', 'acid_drum', 'hydrant'];
+            const hType = hazardPool[(floorNum + Math.floor(nextRand() * hazardPool.length)) % hazardPool.length];
+            const hx = (hType === 'spike_trap') ? 240 : (nextRand() < 0.5 ? 120 : 360);
+            const hy = 185 + Math.round(nextRand() * 35);
+            breakables.push({
+              type: hType,
+              x: hx,
+              y: hy,
+              drops: (hType === 'tnt' ? 'scroll' : (hType === 'hydrant' ? 'pizza' : 'daggers'))
+            });
+          }
         }
       }
 

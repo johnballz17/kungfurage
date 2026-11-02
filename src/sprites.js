@@ -2315,8 +2315,8 @@ class SpriteRenderer {
     ctx.restore();
   }
 
-  // RENDER BREAKABLE OBJECT: WOODEN CRATE / BARREL
-  drawBreakable(ctx, type, health, maxHealth) {
+  // RENDER BREAKABLE OBJECT & ENVIRONMENTAL HAZARDS
+  drawBreakable(ctx, type, health, maxHealth, animTime = 0, hazardState = 'active') {
     if (type === 'crate') {
       // Wooden Kung-Fu Crate
       this.px(ctx, -14, -26, 28, 26, '#a66935');
@@ -2338,6 +2338,210 @@ class SpriteRenderer {
       this.px(ctx, -12, -10, 24, 3, '#444');
       // Dragon insignia
       this.px(ctx, -4, -18, 8, 6, '#ffd700');
+    } else if (type === 'tnt') {
+      // High-Explosive TNT Hazard Barrel
+      this.px(ctx, -12, -28, 24, 28, '#d62828');
+      this.px(ctx, -10, -26, 20, 24, '#e63946');
+      // Yellow & Black Hazard Stripes on top & bottom rims
+      this.px(ctx, -12, -28, 24, 4, '#ffbe0b');
+      this.px(ctx, -12, -4, 24, 4, '#ffbe0b');
+      this.px(ctx, -10, -28, 4, 4, '#111111');
+      this.px(ctx, -2, -28, 4, 4, '#111111');
+      this.px(ctx, 6, -28, 4, 4, '#111111');
+      this.px(ctx, -10, -4, 4, 4, '#111111');
+      this.px(ctx, -2, -4, 4, 4, '#111111');
+      this.px(ctx, 6, -4, 4, 4, '#111111');
+      // White bold stenciled "TNT" label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TNT', 0, -13);
+      // Lit fuse rope on top
+      this.px(ctx, -1, -33, 2, 5, '#8d99ae');
+      // Flickering burning spark
+      const sparkPulse = Math.sin(animTime * 28) * 1.5;
+      ctx.fillStyle = (Math.floor(animTime * 18) % 2 === 0) ? '#ffbe0b' : '#ff0055';
+      ctx.beginPath();
+      ctx.arc(0, -34, 3 + sparkPulse * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (type === 'electric_pylon') {
+      // High-Voltage Tesla Generator & Pylon
+      this.px(ctx, -12, -12, 24, 12, '#1e293b');
+      this.px(ctx, -10, -10, 20, 8, '#334155');
+      // Yellow Lightning Bolt Hazard Badge
+      this.px(ctx, -3, -10, 6, 8, '#facc15');
+      this.px(ctx, -1, -8, 2, 4, '#1e293b');
+      // Ceramic Insulator Stack (Ribbed)
+      this.px(ctx, -6, -24, 12, 12, '#0284c7');
+      this.px(ctx, -8, -22, 16, 2, '#38bdf8');
+      this.px(ctx, -8, -17, 16, 2, '#38bdf8');
+      this.px(ctx, -8, -13, 16, 2, '#38bdf8');
+      // Copper Tesla Coil Terminals
+      this.px(ctx, -10, -32, 5, 8, '#d97706');
+      this.px(ctx, 5, -32, 5, 8, '#d97706');
+      this.px(ctx, -9, -34, 3, 3, '#f59e0b');
+      this.px(ctx, 6, -34, 3, 3, '#f59e0b');
+      // Animated Electric Zap Arc snapping between terminals
+      if (Math.sin(animTime * 14) > -0.2) {
+        ctx.strokeStyle = '#05d9e8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const midY = -34 + (Math.random() * 6 - 3);
+        ctx.moveTo(-7, -33);
+        ctx.lineTo(-2, midY);
+        ctx.lineTo(2, midY + (Math.random() * 4 - 2));
+        ctx.lineTo(7, -33);
+        ctx.stroke();
+        // Bright white center spark
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-1, midY - 1, 2, 2);
+      }
+    } else if (type === 'acid_drum') {
+      if (hazardState === 'puddle') {
+        // Active Bubbling Acid Puddle on the floor
+        ctx.save();
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.72)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 36, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Bubbles popping in the ooze
+        for (let b = 0; b < 4; b++) {
+          const bx = Math.sin(animTime * 4 + b * 1.8) * 24;
+          const by = Math.cos(animTime * 5 + b * 1.5) * 8;
+          const br = 2 + (Math.sin(animTime * 8 + b) + 1);
+          ctx.fillStyle = '#6ee7b7';
+          ctx.beginPath();
+          ctx.arc(bx, by, br, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Dented melted drum resting in the puddle
+        this.px(ctx, -8, -12, 16, 12, '#064e3b');
+        this.px(ctx, -6, -10, 12, 8, '#047857');
+        ctx.restore();
+      } else {
+        // Toxic Chemical Acid Drum
+        this.px(ctx, -12, -28, 24, 28, '#065f46');
+        this.px(ctx, -10, -26, 20, 24, '#059669');
+        // Black steel ribs
+        this.px(ctx, -12, -22, 24, 3, '#1e293b');
+        this.px(ctx, -12, -10, 24, 3, '#1e293b');
+        // Yellow Biohazard trefoil badge
+        this.px(ctx, -5, -18, 10, 7, '#facc15');
+        this.px(ctx, -2, -16, 4, 3, '#065f46');
+        // Bubbling radioactive slime dripping over the rim
+        this.px(ctx, -11, -30, 22, 4, '#10b981');
+        const drip = Math.floor(animTime * 3) % 4;
+        this.px(ctx, -6, -26, 3, 5 + drip, '#34d399');
+        this.px(ctx, 4, -26, 3, 3 + (drip % 2), '#34d399');
+      }
+    } else if (type === 'spike_trap') {
+      // Floor Spike Blade Trap Grate
+      ctx.save();
+      // Outer steel frame recessed in floor
+      this.px(ctx, -18, -8, 36, 16, '#1e293b');
+      this.px(ctx, -16, -6, 32, 12, '#334155');
+      // Slits in grate
+      for (let s = -12; s <= 12; s += 6) {
+        this.px(ctx, s, -5, 2, 10, '#0f172a');
+      }
+
+      if (hazardState === 'warning') {
+        // Spikes peeking out slightly with warning rattling
+        const rattle = (Math.sin(animTime * 35) > 0 ? 1 : 0);
+        ctx.fillStyle = '#ffbe0b';
+        for (let s = -12; s <= 12; s += 6) {
+          ctx.beginPath();
+          ctx.moveTo(s + 1, -5 - rattle);
+          ctx.lineTo(s - 1, -1);
+          ctx.lineTo(s + 3, -1);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else if (hazardState === 'extended') {
+        // Sharp gleaming steel spikes thrust high into the air!
+        for (let s = -12; s <= 12; s += 6) {
+          // Spike blade body
+          ctx.fillStyle = '#e2e8f0';
+          ctx.beginPath();
+          ctx.moveTo(s + 1, -22); // Sharp top tip
+          ctx.lineTo(s - 2, -4);
+          ctx.lineTo(s + 4, -4);
+          ctx.closePath();
+          ctx.fill();
+          // Blade bevel shadow
+          ctx.fillStyle = '#94a3b8';
+          ctx.beginPath();
+          ctx.moveTo(s + 1, -22);
+          ctx.lineTo(s + 4, -4);
+          ctx.lineTo(s + 1, -4);
+          ctx.closePath();
+          ctx.fill();
+          // Razor red/blood tip
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.moveTo(s + 1, -22);
+          ctx.lineTo(s, -17);
+          ctx.lineTo(s + 2, -17);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    } else if (type === 'hydrant') {
+      // Red City Fire Hydrant
+      this.px(ctx, -9, -24, 18, 24, '#b91c1c');
+      this.px(ctx, -7, -22, 14, 20, '#ef4444');
+      // Flanged base
+      this.px(ctx, -11, -4, 22, 4, '#7f1d1d');
+      // Side brass valve caps
+      this.px(ctx, -12, -15, 3, 6, '#d97706');
+      this.px(ctx, 9, -15, 3, 6, '#d97706');
+
+      if (hazardState === 'ruptured') {
+        // Ruptured High-Pressure Vertical Water Geyser!
+        ctx.save();
+        const gTime = animTime * 15;
+        // Outer spray plume
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
+        ctx.beginPath();
+        ctx.moveTo(-10, -22);
+        ctx.lineTo(-16 - Math.sin(gTime) * 3, -115);
+        ctx.lineTo(16 + Math.cos(gTime) * 3, -115);
+        ctx.lineTo(10, -22);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner foaming white column
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath();
+        ctx.moveTo(-5, -24);
+        ctx.lineTo(-8 + Math.cos(gTime * 1.5) * 2, -110);
+        ctx.lineTo(8 - Math.sin(gTime * 1.5) * 2, -110);
+        ctx.lineTo(5, -24);
+        ctx.closePath();
+        ctx.fill();
+
+        // Water splash droplet mist at geyser apex
+        for (let d = 0; d < 6; d++) {
+          const dx = Math.sin(gTime + d * 1.2) * 22;
+          const dy = -115 - Math.abs(Math.cos(gTime * 0.8 + d)) * 14;
+          ctx.fillStyle = '#e0f2fe';
+          ctx.fillRect(dx - 1, dy - 1, 3, 3);
+        }
+        // Base ground splash puddle
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.5)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 22, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        // Intact Hydrant Top Dome & Bonnet Nut
+        this.px(ctx, -6, -28, 12, 5, '#ef4444');
+        this.px(ctx, -2, -31, 4, 3, '#d97706');
+      }
     }
   }
 

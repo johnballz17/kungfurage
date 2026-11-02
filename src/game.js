@@ -57,6 +57,9 @@ class Game {
     // Game Mode & Vertical Mechanics
     this.gameMode = localStorage.getItem('kungfu_gamemode') || 'HORIZONTAL';
 
+    // Procedural Obstacles & Environmental Hazard Density ('max', 'normal', 'off')
+    this.obstacleMayhem = (typeof localStorage !== 'undefined' && localStorage.getItem('kungfu_obstacle_mayhem')) || 'max';
+
     this.player = new Player(100, 210, 'smellu');
     this.stage = new Stage();
     if (this.stage.gameMode !== this.gameMode) {
@@ -148,6 +151,27 @@ class Game {
     }
   }
 
+  cycleObstacleMayhem() {
+    const modes = ['max', 'normal', 'off'];
+    const idx = modes.indexOf(this.obstacleMayhem);
+    this.obstacleMayhem = modes[(idx + 1) % modes.length];
+    if (typeof localStorage !== 'undefined' && localStorage.setItem) {
+      localStorage.setItem('kungfu_obstacle_mayhem', this.obstacleMayhem);
+    }
+    if (window.soundEngine) {
+      window.soundEngine.playPickup();
+    }
+    this.refreshSettingsUI();
+    const labels = {
+      max: 'OBSTACLES: MAX MAYHEM!',
+      normal: 'OBSTACLES: NORMAL',
+      off: 'OBSTACLES: MINIMAL (OFF)'
+    };
+    if (window.combatSystem && this.player) {
+      window.combatSystem.spawnComboText(this.player.x, this.player.y - 45, labels[this.obstacleMayhem] || this.obstacleMayhem.toUpperCase(), '#ffbe0b');
+    }
+  }
+
   getDifficultyModifiers() {
     switch (this.difficulty) {
       case 'EASY':
@@ -226,6 +250,17 @@ class Game {
             return;
           } else {
             this.openManualModal();
+            return;
+          }
+        }
+
+        // Click on 2P / Hazards banner row (y: 244-255)
+        if (clickY >= 244 && clickY <= 256) {
+          if (clickX >= 115 && clickX <= 265) {
+            this.cycleObstacleMayhem();
+            return;
+          } else if (clickX < 115) {
+            this.toggleCompanion();
             return;
           }
         }
@@ -473,6 +508,9 @@ class Game {
       }
       if (input.isActionJustPressed('mode') || (input.keys['KeyM'] && !input.prevKeys['KeyM'])) {
         this.toggleGameMode();
+      }
+      if (input.keys['KeyH'] && !input.prevKeys['KeyH']) {
+        this.cycleObstacleMayhem();
       }
 
       if (input.isActionJustPressed('left')) {
@@ -889,9 +927,15 @@ class Game {
     // 5. UPDATE BREAKABLES & ITEM PICKUPS
     for (let i = this.breakables.length - 1; i >= 0; i--) {
       const b = this.breakables[i];
+      if (b.update) {
+        b.update(dt, this.player, this.enemies, this);
+      }
       if (b.isDead) {
-        // Drop loot!
-        this.pickups.push(new ItemPickup(b.x, b.y, b.drops));
+        // Drop loot if not already dropped by hazard
+        if (!b.hasDroppedLoot && b.drops) {
+          this.pickups.push(new ItemPickup(b.x, b.y, b.drops));
+          b.hasDroppedLoot = true;
+        }
         this.breakables.splice(i, 1);
       }
     }
@@ -1487,12 +1531,18 @@ class Game {
     ctx.fillStyle = '#05d9e8';
     ctx.fillText('[N] MANUAL', 390, 237);
 
-    // Companion & Auto-Play Info Banner
+    // Companion, Hazards & Settings Info Banner
     const compKey = window.inputManager.getKeyDisplayName(window.inputManager.bindings.companion?.[0] || 'KeyT');
     const compStatus = this.companionEnabled ? `ON (${this.companionChar.toUpperCase()})` : 'OFF';
-    ctx.font = '6px "Press Start 2P"';
+    const hazardStatus = this.obstacleMayhem === 'max' ? 'MAX' : (this.obstacleMayhem === 'normal' ? 'NORM' : 'OFF');
+    const hazardColor = this.obstacleMayhem === 'max' ? '#ffbe0b' : (this.obstacleMayhem === 'normal' ? '#05d9e8' : '#8888aa');
+    ctx.font = '5.5px "Press Start 2P"';
     ctx.fillStyle = this.companionEnabled ? '#00ffcc' : '#8888aa';
-    ctx.fillText(`[${compKey}] 2P COMP: ${compStatus}   [Q] WATCH AI   [O] SETTINGS`, 240, 249);
+    ctx.fillText(`[${compKey}] 2P:${compStatus}`, 115, 249);
+    ctx.fillStyle = hazardColor;
+    ctx.fillText(`[H] HAZARDS:${hazardStatus}`, 235, 249);
+    ctx.fillStyle = '#ff2a6d';
+    ctx.fillText(`[O] SETTINGS`, 365, 249);
 
     // Bottom Footer Prompt
     if (Math.floor(this.titleBlink) % 2 === 0) {
@@ -1501,8 +1551,8 @@ class Game {
       ctx.fillText('[J] START GAME   [Q] WATCH 2-AI COMPANIONS LEARN', 240, 261);
     } else {
       ctx.fillStyle = '#ffffff';
-      ctx.font = '6px "Press Start 2P"';
-      ctx.fillText('◀ / ▶ FIGHTER   ⬆ / ⬇ WEAPON   [M] MODE   [Q] AUTO', 240, 261);
+      ctx.font = '5.5px "Press Start 2P"';
+      ctx.fillText('◀/▶ HERO   ⬆/⬇ WEAPON   [M] MODE   [H] HAZARDS   [Q] AUTO', 240, 261);
     }
 
     ctx.restore();
@@ -1960,6 +2010,14 @@ class Game {
       // Synchronize initial Volume Sliders
       this.syncVolumeUI();
 
+      // Procedural Obstacles & Environmental Hazards
+      const mayhemBtn = document.getElementById('toggle-obstacle-mayhem-btn');
+      if (mayhemBtn) {
+        mayhemBtn.addEventListener('click', () => {
+          this.cycleObstacleMayhem();
+        });
+      }
+
       // Visual Accessibility Options (Screen Shake & Screen Flashing)
       const shakeBtn = document.getElementById('toggle-screenshake-btn');
       if (shakeBtn) {
@@ -2228,6 +2286,24 @@ class Game {
     modal.querySelectorAll('.companion-tactics-grid .opt-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.compTactics === this.companionTactics);
     });
+
+    // Obstacle Mayhem setting
+    const mayhemBtn = document.getElementById('toggle-obstacle-mayhem-btn');
+    if (mayhemBtn) {
+      mayhemBtn.classList.toggle('active', this.obstacleMayhem !== 'off');
+      const title = document.getElementById('obstacle-mayhem-btn-title');
+      const desc = document.getElementById('obstacle-mayhem-btn-desc');
+      if (this.obstacleMayhem === 'max') {
+        if (title) title.innerText = 'OBSTACLES & HAZARDS: MAX MAYHEM';
+        if (desc) desc.innerText = 'Maximum TNT explosive barrels, electric pylons, acid drums, spike traps & water geysers [Press H]';
+      } else if (this.obstacleMayhem === 'normal') {
+        if (title) title.innerText = 'OBSTACLES & HAZARDS: NORMAL';
+        if (desc) desc.innerText = 'Balanced tactical environmental hazards and supply crates across zones [Press H]';
+      } else {
+        if (title) title.innerText = 'OBSTACLES & HAZARDS: MINIMAL / OFF';
+        if (desc) desc.innerText = 'Classic supply crates and barrels only; traps and environmental hazards disabled [Press H]';
+      }
+    }
 
     // Visual Accessibility state (Screen Shake & Flashing)
     const shakeBtn = document.getElementById('toggle-screenshake-btn');

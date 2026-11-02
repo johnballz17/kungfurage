@@ -2021,30 +2021,388 @@ class Enemy extends Fighter {
 class Breakable extends Entity {
   constructor(x, y, type = 'crate', drops = 'pizza') {
     super(x, y);
-    this.type = type;
-    this.drops = drops; // 'pizza', 'nunchaku', 'scroll'
-    this.health = 2;
-    this.maxHealth = 2;
-    this.width = 28;
-    this.height = 26;
+    this.type = type; // 'crate', 'barrel', 'tnt', 'electric_pylon', 'acid_drum', 'spike_trap', 'hydrant'
+    this.drops = drops; // 'pizza', 'nunchaku', 'scroll', 'pistols', etc.
+    this.animTime = Math.random() * 10;
+    this.hazardState = 'active'; // 'intact', 'puddle', 'ruptured', 'retracted', 'warning', 'extended'
+    this.hazardTimer = 0;
+    this.spikeTimer = 1.5 + Math.random() * 1.2;
+    this.spikeCycleId = Math.floor(Math.random() * 1000);
+    this.zapCooldown = 0;
+    this.geyserDuration = 0;
+    this.hasDetonated = false;
+    this.hasDroppedLoot = false;
+    this.tickTimer = 0;
+
+    if (this.type === 'tnt') {
+      this.health = 1;
+      this.maxHealth = 1;
+      this.width = 24;
+      this.height = 28;
+    } else if (this.type === 'electric_pylon') {
+      this.health = 4;
+      this.maxHealth = 4;
+      this.width = 24;
+      this.height = 34;
+    } else if (this.type === 'acid_drum') {
+      this.health = 2;
+      this.maxHealth = 2;
+      this.width = 24;
+      this.height = 28;
+    } else if (this.type === 'spike_trap') {
+      this.health = 99999;
+      this.maxHealth = 99999;
+      this.width = 36;
+      this.height = 16;
+      this.hazardState = 'retracted';
+    } else if (this.type === 'hydrant') {
+      this.health = 2;
+      this.maxHealth = 2;
+      this.width = 20;
+      this.height = 28;
+    } else {
+      // Standard wooden crate or barrel
+      this.health = 2;
+      this.maxHealth = 2;
+      this.width = 28;
+      this.height = 26;
+    }
   }
 
-  takeDamage(amount, facing) {
+  takeDamage(amount, facing = 1) {
+    if (this.isDead) return;
+
+    if (this.type === 'spike_trap') {
+      // Metal floor blades produce deflection spark
+      if (window.soundEngine) window.soundEngine.playHit(false);
+      if (window.combatSystem) {
+        window.combatSystem.spawnHitSpark(this.x, this.y - 4, '#94a3b8', 6);
+      }
+      return;
+    }
+
+    if (this.type === 'tnt') {
+      this.detonate();
+      return;
+    }
+
+    if (this.type === 'hydrant') {
+      this.health -= amount;
+      if (window.soundEngine) window.soundEngine.playHit(true);
+      if (window.combatSystem) {
+        window.combatSystem.spawnHitSpark(this.x, this.y - 14, '#ef4444', 8);
+      }
+      if (this.health <= 0 && this.hazardState !== 'ruptured') {
+        this.hazardState = 'ruptured';
+        this.geyserDuration = 5.5;
+        if (window.soundEngine && window.soundEngine.playGeyserSplash) {
+          window.soundEngine.playGeyserSplash();
+        }
+        if (window.combatSystem) {
+          window.combatSystem.triggerScreenShake(6, 0.25);
+          window.combatSystem.spawnComboText(this.x, this.y - 50, 'GEYSER ERUPTION!', '#38bdf8');
+        }
+        this.dropLootPickup();
+      }
+      return;
+    }
+
+    if (this.type === 'acid_drum') {
+      this.health -= amount;
+      if (window.soundEngine) window.soundEngine.playHit(true);
+      if (window.combatSystem) {
+        window.combatSystem.spawnHitSpark(this.x, this.y - 14, '#10b981', 10);
+      }
+      if (this.health <= 0 && this.hazardState !== 'puddle') {
+        this.hazardState = 'puddle';
+        this.hazardTimer = 7.0;
+        if (window.soundEngine && window.soundEngine.playAcidSizzle) {
+          window.soundEngine.playAcidSizzle();
+        }
+        if (window.combatSystem) {
+          window.combatSystem.spawnGreenGore(this.x, this.y - 10, this.y, 25, true, facing, true);
+          window.combatSystem.spawnComboText(this.x, this.y - 45, 'ACID SPILL!', '#10b981');
+        }
+        this.dropLootPickup();
+      }
+      return;
+    }
+
+    if (this.type === 'electric_pylon') {
+      this.health -= amount;
+      if (window.soundEngine && window.soundEngine.playElectricZap) {
+        window.soundEngine.playElectricZap();
+      }
+      if (window.combatSystem) {
+        window.combatSystem.spawnHitSpark(this.x, this.y - 18, '#05d9e8', 12);
+      }
+      if (this.health <= 0) {
+        this.empDischarge();
+      }
+      return;
+    }
+
+    // Standard crate or barrel
     this.health -= amount;
-    window.soundEngine.playHit(true);
-    window.combatSystem.spawnHitSpark(this.x, this.y - 14, '#b87333', 10);
+    if (window.soundEngine) window.soundEngine.playHit(true);
+    if (window.combatSystem) {
+      window.combatSystem.spawnHitSpark(this.x, this.y - 14, '#b87333', 10);
+    }
     if (this.health <= 0) {
       this.isDead = true;
-      window.soundEngine.playKnockdown();
-      window.combatSystem.triggerScreenShake(4, 0.18);
+      if (window.soundEngine) window.soundEngine.playKnockdown();
+      if (window.combatSystem) window.combatSystem.triggerScreenShake(4, 0.18);
+    }
+  }
+
+  detonate() {
+    if (this.hasDetonated) return;
+    this.hasDetonated = true;
+    this.isDead = true;
+
+    if (window.soundEngine && window.soundEngine.playExplosion) {
+      window.soundEngine.playExplosion();
+    } else if (window.soundEngine && window.soundEngine.playThunder) {
+      window.soundEngine.playThunder();
+    }
+
+    if (window.combatSystem) {
+      window.combatSystem.triggerScreenShake(12, 0.45);
+      window.combatSystem.spawnHitSpark(this.x, this.y - 15, '#ff3b30', 22);
+      window.combatSystem.spawnHitSpark(this.x, this.y - 15, '#ff9500', 18);
+      window.combatSystem.spawnHitSpark(this.x, this.y - 25, '#ffd700', 12);
+      window.combatSystem.spawnComboText(this.x, this.y - 50, 'TNT BLAST! 45 DMG', '#ff9500');
+    }
+
+    const game = (typeof window !== 'undefined') ? window.game : null;
+    if (!game) return;
+
+    // Damage all enemies in explosion radius
+    const blastRadius = 92;
+    if (game.enemies) {
+      for (const e of game.enemies) {
+        if (e && !e.isDead) {
+          const dist = Math.hypot(e.x - this.x, e.y - this.y);
+          if (dist <= blastRadius) {
+            const blastFacing = (e.x >= this.x) ? 1 : -1;
+            const dmg = Math.round(45 * (1 - dist / (blastRadius * 1.3))) + 15;
+            e.takeDamage(dmg, blastFacing, true, 6, 5);
+            if (window.combatSystem) {
+              window.combatSystem.spawnHitSpark(e.x, e.y - 16, '#ff3b30', 10);
+              window.combatSystem.spawnDamageNumber(e.x, e.y - 28, dmg);
+            }
+          }
+        }
+      }
+    }
+
+    // Chain reaction with adjacent breakables
+    if (game.breakables) {
+      for (const b of game.breakables) {
+        if (b && b !== this && !b.isDead) {
+          const dist = Math.hypot(b.x - this.x, b.y - this.y);
+          if (dist <= 75) {
+            b.takeDamage(5, (b.x >= this.x ? 1 : -1));
+          }
+        }
+      }
+    }
+
+    // Light player knockback if too close
+    if (game.player && !game.player.isDead && !game.player.isInvulnerable) {
+      const pDist = Math.hypot(game.player.x - this.x, game.player.y - this.y);
+      if (pDist <= 55) {
+        game.player.takeDamage(8, (game.player.x >= this.x ? 1 : -1), true, 3, 3);
+      }
+    }
+
+    this.dropLootPickup();
+  }
+
+  empDischarge() {
+    this.isDead = true;
+    if (window.soundEngine && window.soundEngine.playElectricZap) {
+      window.soundEngine.playElectricZap();
+    }
+    if (window.combatSystem) {
+      window.combatSystem.triggerScreenShake(7, 0.3);
+      window.combatSystem.spawnHitSpark(this.x, this.y - 20, '#05d9e8', 20);
+      window.combatSystem.spawnHitSpark(this.x, this.y - 20, '#ffffff', 10);
+      window.combatSystem.spawnComboText(this.x, this.y - 45, 'EMP OVERLOAD! 25 DMG', '#05d9e8');
+    }
+
+    const game = (typeof window !== 'undefined') ? window.game : null;
+    if (!game || !game.enemies) return;
+
+    for (const e of game.enemies) {
+      if (e && !e.isDead) {
+        const dist = Math.hypot(e.x - this.x, e.y - this.y);
+        if (dist <= 85) {
+          const facing = (e.x >= this.x) ? 1 : -1;
+          e.takeDamage(25, facing, true, 4, 3.5);
+          if (window.combatSystem) {
+            window.combatSystem.spawnHitSpark(e.x, e.y - 18, '#05d9e8', 12);
+            window.combatSystem.spawnDamageNumber(e.x, e.y - 28, 25);
+          }
+        }
+      }
+    }
+    this.dropLootPickup();
+  }
+
+  dropLootPickup() {
+    if (this.hasDroppedLoot) return;
+    this.hasDroppedLoot = true;
+    const game = (typeof window !== 'undefined') ? window.game : null;
+    if (game && game.pickups && this.drops) {
+      game.pickups.push(new ItemPickup(this.x, this.y, this.drops));
+    }
+  }
+
+  update(dt, player, enemies, game) {
+    this.animTime += dt;
+    this.tickTimer += dt;
+
+    // 1. Spike Trap Periodic State Machine & Impale Collision
+    if (this.type === 'spike_trap') {
+      this.spikeTimer -= dt;
+      if (this.spikeTimer <= 0) {
+        if (this.hazardState === 'retracted') {
+          this.hazardState = 'warning';
+          this.spikeTimer = 0.65;
+          if (window.soundEngine && window.soundEngine.playTrapClick) window.soundEngine.playTrapClick();
+        } else if (this.hazardState === 'warning') {
+          this.hazardState = 'extended';
+          this.spikeTimer = 1.6;
+          this.spikeCycleId++;
+          if (window.soundEngine && window.soundEngine.playSpikeTrap) window.soundEngine.playSpikeTrap();
+        } else {
+          this.hazardState = 'retracted';
+          this.spikeTimer = 2.2;
+        }
+      }
+
+      if (this.hazardState === 'extended' && enemies) {
+        for (const e of enemies) {
+          if (e && !e.isDead && Math.abs(e.x - this.x) < 20 && Math.abs(e.y - this.y) < 12 && e.z < 12) {
+            if (e.lastSpikeCycle !== this.spikeCycleId) {
+              e.lastSpikeCycle = this.spikeCycleId;
+              e.takeDamage(22, (e.x >= this.x ? 1 : -1), true, 1.2, 5.0);
+              if (window.combatSystem) {
+                window.combatSystem.spawnDamageNumber(e.x, e.y - 30, 22);
+                window.combatSystem.spawnComboText(e.x, e.y - 50, 'SPIKE IMPALED!', '#ff0055');
+                window.combatSystem.spawnGreenGore(e.x, e.y - 10, e.y, 16, true, 1, e.type === 'zombie');
+                window.combatSystem.triggerScreenShake(5, 0.2);
+              }
+            }
+          }
+        }
+
+        if (player && !player.isDead && !player.isInvulnerable && Math.abs(player.x - this.x) < 18 && Math.abs(player.y - this.y) < 10 && player.z < 10) {
+          if (player.lastSpikeCycle !== this.spikeCycleId) {
+            player.lastSpikeCycle = this.spikeCycleId;
+            player.takeDamage(10, 1, true, 1.2, 4.0);
+            if (window.combatSystem) {
+              window.combatSystem.spawnComboText(player.x, player.y - 45, 'SPIKE TRAP!', '#ff3b30');
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Electric Pylon Proximity Arc
+    if (this.type === 'electric_pylon' && !this.isDead) {
+      this.zapCooldown = Math.max(0, this.zapCooldown - dt);
+      if (this.zapCooldown <= 0 && enemies) {
+        for (const e of enemies) {
+          if (e && !e.isDead && Math.abs(e.x - this.x) < 28 && Math.abs(e.y - this.y) < 16 && e.z < 14) {
+            this.zapCooldown = 1.3;
+            e.takeDamage(16, (e.x >= this.x ? 1 : -1), true, 4.5, 3.8);
+            if (window.soundEngine && window.soundEngine.playElectricZap) window.soundEngine.playElectricZap();
+            if (window.combatSystem) {
+              window.combatSystem.spawnHitSpark(e.x, e.y - 20, '#05d9e8', 16);
+              window.combatSystem.spawnDamageNumber(e.x, e.y - 30, 16);
+              window.combatSystem.spawnComboText(e.x, e.y - 50, 'HIGH VOLTAGE!', '#05d9e8');
+            }
+            this.takeDamage(1, 1);
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Acid Drum Toxic Puddle
+    if (this.type === 'acid_drum' && this.hazardState === 'puddle') {
+      this.hazardTimer -= dt;
+      if (this.tickTimer >= 0.35) {
+        this.tickTimer = 0;
+        if (enemies) {
+          for (const e of enemies) {
+            if (e && !e.isDead && Math.abs(e.x - this.x) < 32 && Math.abs(e.y - this.y) < 14 && e.z < 8) {
+              e.takeDamage(4, 1, false);
+              if (window.soundEngine && window.soundEngine.playAcidSizzle) window.soundEngine.playAcidSizzle();
+              if (window.combatSystem) {
+                window.combatSystem.spawnHitSpark(e.x, e.y - 6, '#10b981', 5);
+                window.combatSystem.spawnDamageNumber(e.x, e.y - 22, 4);
+              }
+            }
+          }
+        }
+      }
+      if (this.hazardTimer <= 0) {
+        this.isDead = true;
+      }
+    }
+
+    // 4. Hydrant Ruptured Geyser Juggle
+    if (this.type === 'hydrant' && this.hazardState === 'ruptured') {
+      this.geyserDuration -= dt;
+      if (enemies) {
+        for (const e of enemies) {
+          if (e && !e.isDead && Math.abs(e.x - this.x) < 24 && Math.abs(e.y - this.y) < 14) {
+            e.z = Math.max(e.z, 22);
+            e.vz = 6.0;
+            e.state = 'knockdown';
+            e.takeDamage(2, 1, true, 0, 6.0);
+            if (window.combatSystem && Math.random() < 0.25) {
+              window.combatSystem.spawnComboText(e.x, e.y - 65, 'WATER JUGGLE!', '#38bdf8');
+            }
+          }
+        }
+      }
+      if (this.geyserDuration <= 0) {
+        this.isDead = true;
+      }
+    }
+
+    // 5. Thrown / Flying Enemy Impact Collision with Obstacle
+    if (enemies && !this.isDead && this.type !== 'spike_trap') {
+      for (const e of enemies) {
+        if (e && !e.isDead && e.state === 'knockdown' && (Math.abs(e.vx) > 1.2 || e.z > 0)) {
+          if (Math.abs(e.x - this.x) < (this.width / 2 + 10) && Math.abs(e.y - this.y) < 14) {
+            if (e.lastObstacleHit !== this) {
+              e.lastObstacleHit = this;
+              this.takeDamage(2, e.facing || 1);
+              e.takeDamage(12, -(e.facing || 1), true, 2, 2.5);
+              if (window.soundEngine) window.soundEngine.playHit(true);
+              if (window.combatSystem) {
+                window.combatSystem.spawnHitSpark(this.x, this.y - 14, '#ffd700', 12);
+                window.combatSystem.spawnComboText(this.x, this.y - 36, 'OBSTACLE SMASH!', '#ffbe0b');
+              }
+            }
+          }
+        }
+      }
     }
   }
 
   draw(ctx) {
-    window.spriteRenderer.drawShadow(ctx, this.x, this.y, 32, 12, 0);
+    if (this.type !== 'spike_trap' && this.hazardState !== 'puddle') {
+      window.spriteRenderer.drawShadow(ctx, this.x, this.y, this.width + 4, 12, 0);
+    }
     ctx.save();
     ctx.translate(this.x, this.y);
-    window.spriteRenderer.drawBreakable(ctx, this.type, this.health, this.maxHealth);
+    window.spriteRenderer.drawBreakable(ctx, this.type, this.health, this.maxHealth, this.animTime, this.hazardState);
     ctx.restore();
   }
 }
