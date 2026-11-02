@@ -8,6 +8,7 @@ An old-school retro beat 'em up arcade / NES side-scroller paying tribute to **K
 
 - **Option 1**: Double-click [`play.bat`](file:///C:/Users/alans/OneDrive/Desktop/kungfusidescroller/play.bat) or open [`index.html`](file:///C:/Users/alans/OneDrive/Desktop/kungfusidescroller/index.html) in any browser (Chrome, Edge, Firefox, Safari).
 - **Option 2 (Local Server)**: Run `python -m http.server 8000` or `npx serve .` and navigate to `http://localhost:8000`.
+- **Automatic GitHub Sync**: Double-click [`upload_to_github.bat`](file:///C:/Users/alans/OneDrive/Desktop/kungfusidescroller/upload_to_github.bat) to automatically stage, commit, and push updates to [GitHub](https://github.com/johnballz17/kungfurage.git).
 
 ---
 
